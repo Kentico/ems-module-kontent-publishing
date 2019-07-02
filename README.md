@@ -2,7 +2,8 @@
 
 [![Stack Overflow](https://img.shields.io/badge/Stack%20Overflow-ASK%20NOW-FE7A16.svg?logo=stackoverflow&logoColor=white)](https://stackoverflow.com/tags/kentico)
 
-:warning: DISCLAIMER: This is a sample, it needs detailed testing and maybe some fixing for real production usage. See also [Known issues and TODOs](#known-issues-and-todos).
+## :warning: **DISCLAIMER** 
+This is a *sample* module, it needs detailed testing and maybe some fixing for real production usage. See also [Known issues and TODOs](#known-issues-and-todos).
 
 This repository contains source code of the Kentico Cloud publishing module for Kentico EMS.
 
