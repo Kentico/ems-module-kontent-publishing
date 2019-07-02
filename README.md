@@ -1,8 +1,11 @@
 # Publishing content from Kentico EMS to Kentico Cloud
 
-[![Stack Overflow](https://img.shields.io/badge/Stack%20Overflow-ASK%20NOW-FE7A16.svg?logo=stackoverflow&logoColor=white)](https://stackoverflow.com/tags/kentico-cloud)
+[![Stack Overflow](https://img.shields.io/badge/Stack%20Overflow-ASK%20NOW-FE7A16.svg?logo=stackoverflow&logoColor=white)](https://stackoverflow.com/tags/kentico)
 
-DISCLAIMER: This is a sample, it needs detailed testing and maybe some fixing for real production usage. See also Known issues and TODOs.
+## :warning: **DISCLAIMER** 
+This is a *sample* module, it needs detailed testing and maybe some fixing for real production usage. See also [Known issues and TODOs](#known-issues-and-todos).
+
+## Description
 
 This repository contains source code of the Kentico Cloud publishing module for Kentico EMS.
 
@@ -122,4 +125,4 @@ Some of the features will be finalized once the related parts of the API are fin
 * Update endpoints for content models - As the current API doesn't provide update endpoints for content types and content type snippets, the **Synchronize all** action may fail when executed multiple times.
   * If this happens, you can either **Delete all data** and **Synchronize all** on a clean project, or synchronize only particular type of objects via advanced actions. 
 
-![Analytics](https://kentico-ga-beacon.azurewebsites.net/api/UA-69014260-4/Kentico/ems-kentico-cloud-publishing?pixel)
+![Analytics](https://kentico-ga-beacon.azurewebsites.net/api/UA-69014260-4/Kentico/ems-module-cloud-publishing?pixel)
