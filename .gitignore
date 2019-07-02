@@ -12,6 +12,11 @@
 /CMS/CMSModules/*
 !/CMS/CMSModules/Kentico.KenticoCloudPublishing
 !/CMS/CMSModules/Kentico.KenticoCloudPublishing/*
+!/CMS/CMSSiteUtils
+/CMS/CMSSiteUtils/*
+!/CMS/CMSSiteUtils/Import
+/CMS/CMSSiteUtils/Import/*
+!/CMS/CMSSiteUtils/Import/Kentico.KenticoCloudPublishing_*.zip
 !/KenticoCloudPublishing
 !/KenticoCloudPublishing/*
 /KenticoCloudPublishing/bin/*
