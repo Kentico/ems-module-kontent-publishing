@@ -5,6 +5,8 @@
 ## :warning: **DISCLAIMER** 
 This is a *sample* module, it needs detailed testing and maybe some fixing for real production usage. See also [Known issues and TODOs](#known-issues-and-todos).
 
+## Description
+
 This repository contains source code of the Kentico Cloud publishing module for Kentico EMS.
 
 The module automatically synchronizes all published content and assets (media files, page attachments) from a specific site in [Kentico EMS](https://www.kentico.com) to a specific project in [Kentico Cloud](https://www.kenticocloud.com) using Kentico Cloud Content Management API.
