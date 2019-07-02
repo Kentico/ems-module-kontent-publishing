@@ -1,6 +1,6 @@
 # Publishing content from Kentico EMS to Kentico Cloud
 
-[![Stack Overflow](https://img.shields.io/badge/Stack%20Overflow-ASK%20NOW-FE7A16.svg?logo=stackoverflow&logoColor=white)](https://stackoverflow.com/tags/kentico-cloud)
+[![Stack Overflow](https://img.shields.io/badge/Stack%20Overflow-ASK%20NOW-FE7A16.svg?logo=stackoverflow&logoColor=white)](https://stackoverflow.com/tags/kentico)
 
 DISCLAIMER: This is a sample, it needs detailed testing and maybe some fixing for real production usage. See also Known issues and TODOs.
 
