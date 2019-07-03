@@ -32,6 +32,8 @@ NOTE: Only the files from following folders are necessary for the module, you ca
 
 Open the Kentico EMS solution in Visual Studio, and add project **KenticoCloudPublishing** to the solution.
 
+Include all the content in folder `/CMS/CMSModules/Kentico.KenticoCloudPublishing` to the CMSApp project.
+
 Add **reference** to project **KenticoCloudPublishing** to the CMSApp project.
 
 OPTIONAL: In case you have more projects, e.g. an MVC site instance, add the same reference also to those projects. 
@@ -62,11 +64,19 @@ Add the following keys to the web.config (or app.config) of your project(s)
 
 `KCSyncWebRoot` is the root URL of the target site, to which relative URLs will be resolved, e.g. `https://www.dancinggoat.com`
 
-`KCSyncAssetsDomain` is the domain name on which the assets in your Kentico Cloud project will be located. It depends on the geographical location in which your Kentico Cloud project is hosted. e.g. `assets-us-01.kc-usercontent.com`
+`KCSyncAssetsDomain` is the domain name on which the assets in your Kentico Cloud project will be located. It depends on the geographical location in which your Kentico Cloud project is hosted. e.g. `assets-us-01.kc-usercontent.com`.
+
+The easiest way to learn this domain for your project is to upload a new temporary asset in **Content & Assets**, and then use the **Copy asset URL** action in the actions menu. You can find the domain in the copy dialog.
+
+![Copy asset URL](images/CopyAssetUrl.png)
+
+After you get the domain name, you can delete the asset.
 
 `KCSyncProjectID` and `KCSyncCMAPIKey` can be found in the **API Keys** section of the **Project settings** of your target Kentico Cloud Project.
 
-Navigate to **Kentico EMS administration -> Sites -> Import Site or objects** and Import package **Kentico.KenticoCloudPublishing_1.0.0.zip**.
+Navigate to **Kentico EMS administration -> Sites -> Import Site or objects** and Import package **Kentico.KenticoCloudPublishing_1.0.0.zip**. If you properly copied the module files, the package should be offered automatically in this dialog.
+
+![Import package](images/ImportPackage.png)
 
 Refresh the administration.
 
@@ -81,6 +91,10 @@ Navigate to application **Kentico Cloud Publishing**.
 Click **Synchronize all** to copy all currently published content to Kentico Cloud and wait until the synchronization finishes.
 
 ![Synchronizing changes](images/KenticoCloudPublishingSync.png)
+
+After the synchronization, Kentico Cloud will be populated with all the published content. Examine it and its structure and if something doesn't fit your needs, consider customization.
+
+![Published content](images/PublishedContent.png)
 
 New changes to the published content will synchronize automatically.
 
