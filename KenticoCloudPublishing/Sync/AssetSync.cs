@@ -50,12 +50,12 @@ namespace Kentico.KenticoCloudPublishing
                 return null;
             }
 
-            return $"https://{Settings.AssetsDomain}/{Settings.ProjectId}/{asset.FileReference.Id}/{asset.FileName}";
+            return $"https://{HttpUtility.UrlEncode(Settings.AssetsDomain)}/{Settings.ProjectId}/{asset.FileReference.Id}/{HttpUtility.UrlEncode(asset.FileName)}";
         }
 
         private async Task<List<Guid>> GetAllAssetIds(string continuationToken = null)
         {
-            var query = (continuationToken != null) ? "?continuationToken=" + continuationToken : "";
+            var query = (continuationToken != null) ? "?continuationToken=" + HttpUtility.UrlEncode(continuationToken) : "";
             var itemsEndpoint = $"/assets{query}";
 
             var response = await ExecuteWithResponse<AssetsResponse>(itemsEndpoint, HttpMethod.Get);
@@ -123,7 +123,7 @@ namespace Kentico.KenticoCloudPublishing
         {
             try
             {
-                var endpoint = $"/assets/external-id/{externalId}";
+                var endpoint = $"/assets/external-id/{HttpUtility.UrlEncode(externalId)}";
 
                 await ExecuteWithoutResponse(endpoint, HttpMethod.Delete);
             }
@@ -141,7 +141,7 @@ namespace Kentico.KenticoCloudPublishing
 
         private async Task<AssetData> GetAsset(string externalId)
         {
-            var endpoint = $"/assets/external-id/{externalId}";
+            var endpoint = $"/assets/external-id/{HttpUtility.UrlEncode(externalId)}";
 
             return await ExecuteWithResponse<AssetData>(endpoint, HttpMethod.Get);
         }
@@ -153,14 +153,14 @@ namespace Kentico.KenticoCloudPublishing
                 throw new ArgumentNullException(nameof(data));
             }
 
-            var endpoint = $"/files/{fileName}";
+            var endpoint = $"/files/{HttpUtility.UrlEncode(fileName)}";
 
             return await ExecuteUploadWithResponse<FileReferenceData>(endpoint, data, mimeType);
         }
 
         private async Task UpsertAsset(string externalId, string title, Guid fileReferenceId)
         {
-            var endpoint = $"/assets/external-id/{externalId}";
+            var endpoint = $"/assets/external-id/{HttpUtility.UrlEncode(externalId)}";
 
             var payload = new
             {

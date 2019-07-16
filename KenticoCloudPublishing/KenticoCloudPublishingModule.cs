@@ -415,7 +415,7 @@ namespace Kentico.KenticoCloudPublishing
 
         public async Task SyncContentTypes(CancellationToken? cancellation)
         {
-            await _contentTypeSync.SyncAllContentTypes(cancellation);
+            await _contentTypeSync.SyncAllContentTypes(cancellation, false);
         }
 
         public async Task SyncAttachments(CancellationToken? cancellation)

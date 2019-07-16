@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Web;
 
 using CMS.DataEngine;
+using CMS.DocumentEngine;
 using CMS.EventLog;
 using CMS.FormEngine;
 using CMS.Relationships;
@@ -84,7 +85,7 @@ namespace Kentico.KenticoCloudPublishing
                 SyncLog.LogEvent(EventType.INFORMATION, "KenticoCloudPublishing", "DELETERELATIONSHIPSSNIPPET");
 
                 var externalId = GetSnippetExternalId(RELATED_PAGES_GUID);
-                var endpoint = $"/snippets/external-id/{externalId}";
+                var endpoint = $"/snippets/external-id/{HttpUtility.UrlEncode(externalId)}";
 
                 await ExecuteWithoutResponse(endpoint, HttpMethod.Delete);
             }
@@ -240,13 +241,16 @@ namespace Kentico.KenticoCloudPublishing
             return ClassSiteInfoProvider.GetClassSiteInfo(contentType.ClassID, siteId) != null;
         }
 
-        public async Task SyncAllContentTypes(CancellationToken? cancellation)
+        public async Task SyncAllContentTypes(CancellationToken? cancellation, bool syncPages)
         {
             SyncLog.Log("Synchronizing content types");
 
             var contentTypes = DataClassInfoProvider.GetClasses()
                 .WhereEquals("ClassIsDocumentType", true)
-                .OnSite(Settings.Sitename);
+                .WhereIn(
+                    "ClassID",
+                    ClassSiteInfoProvider.GetClassSites().OnSite(Settings.Sitename).Column("ClassID")
+                );
 
             var index = 0;
 
@@ -261,7 +265,7 @@ namespace Kentico.KenticoCloudPublishing
 
                 SyncLog.Log($"Synchronizing content type {contentType.ClassDisplayName} ({index}/{contentTypes.Count})");
 
-                await SyncContentType(cancellation, contentType);
+                await SyncContentType(cancellation, contentType, syncPages);
             }
         }
 
@@ -270,7 +274,7 @@ namespace Kentico.KenticoCloudPublishing
             try
             {
                 var externalId = GetPageTypeExternalId(contentType.ClassGUID);
-                var endpoint = $"/types/external-id/{externalId}";
+                var endpoint = $"/types/external-id/{HttpUtility.UrlEncode(externalId)}";
 
                 return await ExecuteWithResponse<ContentTypeData>(endpoint, HttpMethod.Get);
             }
@@ -286,7 +290,7 @@ namespace Kentico.KenticoCloudPublishing
             }
         }
 
-        public async Task SyncContentType(CancellationToken? cancellation, DataClassInfo contentType)
+        public async Task SyncContentType(CancellationToken? cancellation, DataClassInfo contentType, bool syncPages = true)
         {
             try
             {
@@ -304,7 +308,10 @@ namespace Kentico.KenticoCloudPublishing
                 await CreateContentType(contentType);
 
                 // Consider removing this with the above, it may take a while, maybe explicit synchronization from the module UI may be sufficient
-                await _pageSync.SyncAllPages(cancellation, contentType);
+                if (syncPages)
+                {
+                    await _pageSync.SyncAllPages(cancellation, contentType);
+                }
             }
             catch (Exception ex)
             {
@@ -320,7 +327,7 @@ namespace Kentico.KenticoCloudPublishing
                 SyncLog.LogEvent(EventType.INFORMATION, "KenticoCloudPublishing", "DELETECONTENTTYPE", contentType.ClassDisplayName);
 
                 var externalId = GetPageTypeExternalId(contentType.ClassGUID);
-                var endpoint = $"/types/external-id/{externalId}";
+                var endpoint = $"/types/external-id/{HttpUtility.UrlEncode(externalId)}";
 
                 await ExecuteWithoutResponse(endpoint, HttpMethod.Delete);
             }
@@ -443,7 +450,7 @@ namespace Kentico.KenticoCloudPublishing
 
         private async Task<List<Guid>> GetAllContentTypeIds(string continuationToken = null)
         {
-            var query = (continuationToken != null) ? "?continuationToken=" + continuationToken : "";
+            var query = (continuationToken != null) ? "?continuationToken=" + HttpUtility.UrlEncode(continuationToken) : "";
             var itemsEndpoint = $"/types{query}";
 
             var response = await ExecuteWithResponse<ContentTypesResponse>(itemsEndpoint, HttpMethod.Get);
@@ -500,7 +507,7 @@ namespace Kentico.KenticoCloudPublishing
 
         private async Task<List<Guid>> GetAllContentTypeSnippetIds(string continuationToken = null)
         {
-            var query = (continuationToken != null) ? "?continuationToken=" + continuationToken : "";
+            var query = (continuationToken != null) ? "?continuationToken=" + HttpUtility.UrlEncode(continuationToken) : "";
             var endpoint = $"/snippets{query}";
 
             var response = await ExecuteWithResponse<SnippetsResponse>(endpoint, HttpMethod.Get);

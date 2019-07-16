@@ -47,7 +47,7 @@ namespace Kentico.KenticoCloudPublishing
         private async Task UnpublishVariant(TreeNode node)
         {
             var externalId = GetPageExternalId(node.NodeGUID);
-            var endpoint = $"/items/external-id/{externalId}/variants/codename/{node.DocumentCulture}/unpublish";
+            var endpoint = $"/items/external-id/{HttpUtility.UrlEncode(externalId)}/variants/codename/{HttpUtility.UrlEncode(node.DocumentCulture)}/unpublish";
 
             await ExecuteWithoutResponse(endpoint, HttpMethod.Put);
         }
@@ -89,7 +89,7 @@ namespace Kentico.KenticoCloudPublishing
         private async Task<bool> DeleteVariant(TreeNode node)
         {
             var externalId = GetPageExternalId(node.NodeGUID);
-            var endpoint = $"/items/external-id/{externalId}/variants/codename/{node.DocumentCulture}";
+            var endpoint = $"/items/external-id/{HttpUtility.UrlEncode(externalId)}/variants/codename/{HttpUtility.UrlEncode(node.DocumentCulture)}";
 
             try
             {
@@ -147,7 +147,7 @@ namespace Kentico.KenticoCloudPublishing
 
                 SyncLog.LogEvent(EventType.INFORMATION, "KenticoCloudPublishing", "SYNCALLPAGES", contentType.ClassDisplayName);
 
-                var documents = new DocumentQuery(contentType.ClassName).PublishedVersion();
+                var documents = new DocumentQuery(contentType.ClassName).OnSite(Settings.Sitename).PublishedVersion();
 
                 var index = 0;
 
@@ -180,7 +180,7 @@ namespace Kentico.KenticoCloudPublishing
             }
 
             var externalId = GetPageExternalId(node.NodeGUID);
-            var endpoint = $"/items/external-id/{externalId}";
+            var endpoint = $"/items/external-id/{HttpUtility.UrlEncode(externalId)}";
 
             var pageType = DataClassInfoProvider.GetDataClassInfo(node.NodeClassName);
             if (pageType == null)
@@ -225,7 +225,7 @@ namespace Kentico.KenticoCloudPublishing
             }
 
             var externalId = GetPageExternalId(node.NodeGUID);
-            var endpoint = $"/items/external-id/{externalId}/variants/codename/{node.DocumentCulture}";
+            var endpoint = $"/items/external-id/{HttpUtility.UrlEncode(externalId)}/variants/codename/{HttpUtility.UrlEncode(node.DocumentCulture)}";
 
             var contentType = DataClassInfoProvider.GetDataClassInfo(node.NodeClassName);
             if (contentType == null)
@@ -313,7 +313,7 @@ namespace Kentico.KenticoCloudPublishing
         private async Task PublishVariant(TreeNode node, DateTime? publishWhen)
         {
             var externalId = GetPageExternalId(node.NodeGUID);
-            var endpoint = $"/items/external-id/{externalId}/variants/codename/{node.DocumentCulture}/publish";
+            var endpoint = $"/items/external-id/{HttpUtility.UrlEncode(externalId)}/variants/codename/{HttpUtility.UrlEncode(node.DocumentCulture)}/publish";
 
             var isScheduledToFuture = publishWhen.HasValue && (publishWhen.Value > DateTime.Now.AddMinutes(1));
             var payload = isScheduledToFuture ?
@@ -331,7 +331,7 @@ namespace Kentico.KenticoCloudPublishing
             try
             {
                 var externalId = GetPageExternalId(node.NodeGUID);
-                var endpoint = $"/items/external-id/{externalId}/variants/codename/{node.DocumentCulture}/cancel-scheduled-publish";
+                var endpoint = $"/items/external-id/{HttpUtility.UrlEncode(externalId)}/variants/codename/{HttpUtility.UrlEncode(node.DocumentCulture)}/cancel-scheduled-publish";
 
                 await ExecuteWithoutResponse(endpoint, HttpMethod.Put);
             }
@@ -357,7 +357,7 @@ namespace Kentico.KenticoCloudPublishing
             try
             {
                 var externalId = GetPageExternalId(node.NodeGUID);
-                var endpoint = $"/items/external-id/{externalId}/variants/codename/{node.DocumentCulture}/new-version";
+                var endpoint = $"/items/external-id/{HttpUtility.UrlEncode(externalId)}/variants/codename/{HttpUtility.UrlEncode(node.DocumentCulture)}/new-version";
 
                 await ExecuteWithoutResponse(endpoint, HttpMethod.Put);
             }
@@ -719,7 +719,7 @@ namespace Kentico.KenticoCloudPublishing
         private async Task<Guid> GetContentTypeId(DataClassInfo contentType)
         {
             var externalId = ContentTypeSync.GetPageTypeExternalId(contentType.ClassGUID);
-            var endpoint = $"/types/external-id/{externalId}";
+            var endpoint = $"/types/external-id/{HttpUtility.UrlEncode(externalId)}";
 
             var response = await ExecuteWithResponse<IdReference>(endpoint, HttpMethod.Get);
             if (response == null)
@@ -739,7 +739,7 @@ namespace Kentico.KenticoCloudPublishing
 
         private async Task<List<Guid>> GetAllItemIds(Guid? contentTypeId, string continuationToken = null)
         {
-            var query = (continuationToken != null) ? "?continuationToken=" + continuationToken : "";
+            var query = (continuationToken != null) ? "?continuationToken=" + HttpUtility.UrlEncode(continuationToken) : "";
             var endpoint = $"/items{query}";
 
             var response = await ExecuteWithResponse<ItemsResponse>(endpoint, HttpMethod.Get);

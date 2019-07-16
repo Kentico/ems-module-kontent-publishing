@@ -80,7 +80,7 @@ namespace Kentico.KenticoCloudPublishing
                 SyncLog.LogEvent(EventType.INFORMATION, "KenticoCloudPublishing", "DELETECATEGORIESTAXONOMY");
 
                 var externalId = GetTaxonomyExternalId(ContentTypeSync.CATEGORIES_GUID);
-                var endpoint = $"/taxonomies/external-id/{externalId}";
+                var endpoint = $"/taxonomies/external-id/{HttpUtility.UrlEncode(externalId)}";
 
                 await ExecuteWithoutResponse(endpoint, HttpMethod.Delete);
             }
@@ -148,7 +148,7 @@ namespace Kentico.KenticoCloudPublishing
         
         private async Task<List<Guid>> GetAllTaxonomyIds(string continuationToken = null)
         {
-            var query = (continuationToken != null) ? "?continuationToken=" + continuationToken : "";
+            var query = (continuationToken != null) ? "?continuationToken=" + HttpUtility.UrlEncode(continuationToken) : "";
             var endpoint = $"/taxonomies{query}";
 
             var response = await ExecuteWithResponse<List<TaxonomyData>>(endpoint, HttpMethod.Get);
