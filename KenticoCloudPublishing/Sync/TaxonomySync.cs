@@ -140,7 +140,7 @@ namespace Kentico.KenticoCloudPublishing
                 SyncLog.LogException("KenticoCloudPublishing", "CREATECATEGORIESTAXONOMY", ex);
                 throw;
             }
-}
+        }
 
         #endregion
 

@@ -147,7 +147,11 @@ namespace Kentico.KenticoCloudPublishing
 
                 SyncLog.LogEvent(EventType.INFORMATION, "KenticoCloudPublishing", "SYNCALLPAGES", contentType.ClassDisplayName);
 
-                var documents = new DocumentQuery(contentType.ClassName).OnSite(Settings.Sitename).PublishedVersion();
+                var documents = new DocumentQuery(contentType.ClassName)
+                    .OnSite(Settings.Sitename)
+                    .PublishedVersion()
+                    // Exclude root
+                    .WhereNotNull("NodeParentID");
 
                 var index = 0;
 

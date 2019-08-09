@@ -56,9 +56,9 @@ namespace Kentico.KenticoCloudPublishing
         private async Task<List<Guid>> GetAllAssetIds(string continuationToken = null)
         {
             var query = (continuationToken != null) ? "?continuationToken=" + HttpUtility.UrlEncode(continuationToken) : "";
-            var itemsEndpoint = $"/assets{query}";
+            var endpoint = $"/assets{query}";
 
-            var response = await ExecuteWithResponse<AssetsResponse>(itemsEndpoint, HttpMethod.Get);
+            var response = await ExecuteWithResponse<AssetsResponse>(endpoint, HttpMethod.Get);
             if (response == null)
             {
                 return new List<Guid>();

@@ -156,6 +156,11 @@ public partial class CMSModules_Kentico_KenticoCloudPublishing_Pages_Sync : Glob
         await GetModule()?.SyncPages(cancellation);
     }
 
+    private async Task SyncLanguages(CancellationToken cancellation)
+    {
+        await GetModule()?.SyncLanguages(cancellation);
+    }
+
     private async Task DeleteAll(CancellationToken cancellation)
     {
         await GetModule()?.DeleteAll(cancellation);
@@ -184,6 +189,11 @@ public partial class CMSModules_Kentico_KenticoCloudPublishing_Pages_Sync : Glob
     protected void btnSyncAttachments_Click(object sender, EventArgs e)
     {
         RunSync(SyncAttachments);
+    }
+
+    protected void btnSyncLanguages_Click(object sender, EventArgs e)
+    {
+        RunSync(SyncLanguages);
     }
 
     protected void btnSyncPages_Click(object sender, EventArgs e)

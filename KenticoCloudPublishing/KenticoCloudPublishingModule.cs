@@ -23,6 +23,7 @@ namespace Kentico.KenticoCloudPublishing
         private PageSync _pageSync;
         private AssetSync _assetSync;
         private TaxonomySync _taxonomySync;
+        private LanguageSync _languageSync;
 
         private TreeProvider _tree = new TreeProvider();
 
@@ -34,6 +35,7 @@ namespace Kentico.KenticoCloudPublishing
             if (settings.IsValid())
             {
                 _assetSync = new AssetSync(settings);
+                _languageSync = new LanguageSync(settings);
                 _pageSync = new PageSync(settings, _assetSync);
                 _contentTypeSync = new ContentTypeSync(settings, _pageSync);
                 _taxonomySync = new TaxonomySync(settings);
@@ -415,12 +417,17 @@ namespace Kentico.KenticoCloudPublishing
 
         public async Task SyncContentTypes(CancellationToken? cancellation)
         {
-            await _contentTypeSync.SyncAllContentTypes(cancellation, false);
+            await _contentTypeSync.SyncAllContentTypes(cancellation);
         }
 
         public async Task SyncAttachments(CancellationToken? cancellation)
         {
             await _assetSync.SyncAllAttachments(cancellation);
+        }
+
+        public async Task SyncLanguages(CancellationToken? cancellation)
+        {
+            await _languageSync.SyncCultures(cancellation);
         }
 
         public async Task SyncPages(CancellationToken? cancellation)
@@ -440,27 +447,11 @@ namespace Kentico.KenticoCloudPublishing
         public async Task SyncAll(CancellationToken? cancellation)
         {
             await SyncMediaLibraries(cancellation);
-
-            // We don't want to take down the whole synchronization process just because existing snippet cannot be updated at the moment
-            // TODO - Remove try .. catch when update for content type snippet is implemented
-            try
-            {
-                await SyncRelationships(cancellation);
-            }
-            catch (Exception ex)
-            {
-                SyncLog.LogException(
-                    "KenticoCloudPublishing",
-                    "SYNCALLRELATIONSHIPS",
-                    ex,
-                    0,
-                    "NOTE: You see this because snippet update endpoint is not yet implemented, see SyncAll in module code for more details."
-                );
-            }
-
+            await SyncRelationships(cancellation);
             await SyncCategories(cancellation);
             await SyncContentTypes(cancellation);
             await SyncAttachments(cancellation);
+            await SyncLanguages(cancellation);
             await SyncPages(cancellation);
         }
 

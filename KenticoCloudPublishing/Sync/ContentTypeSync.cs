@@ -17,6 +17,8 @@ namespace Kentico.KenticoCloudPublishing
 {
     internal partial class ContentTypeSync : SyncBase
     {
+        private static HttpMethod PATCH = new HttpMethod("PATCH");
+
         private PageSync _pageSync;
 
         public static readonly string[] UsedRelationshipNameColumns = new[]
@@ -27,8 +29,7 @@ namespace Kentico.KenticoCloudPublishing
         public static readonly string[] UsedPageTypeColumns = new[]
         {
             "ClassFormDefinition",
-            // TODO - Include when update content type endpoints are implemented, until then it is not worth deleting and synchronizing all items
-            // "ClassDisplayName"
+            "ClassDisplayName"
         };
 
         public ContentTypeSync(SyncSettings settings, PageSync pageSync) : base(settings)
@@ -57,6 +58,27 @@ namespace Kentico.KenticoCloudPublishing
 
         #region "Relationships"
 
+        private async Task<SnippetData> GetSnippet(Guid guid)
+        {
+            try
+            {
+                var externalId = GetSnippetExternalId(guid);
+                var endpoint = $"/snippets/external-id/{HttpUtility.UrlEncode(externalId)}";
+
+                return await ExecuteWithResponse<SnippetData>(endpoint, HttpMethod.Get);
+            }
+            catch (HttpException ex)
+            {
+                // 404 is OK, snippet doesn't exist
+                if (ex.GetHttpCode() == 404)
+                {
+                    return null;
+                }
+
+                throw;
+            }
+        }
+        
         public async Task SyncRelationships(CancellationToken? cancellation)
         {
             try
@@ -65,9 +87,15 @@ namespace Kentico.KenticoCloudPublishing
 
                 SyncLog.LogEvent(EventType.INFORMATION, "KenticoCloudPublishing", "UPSERTRELATIONSHIPSSNIPPET");
 
-                // TODO - handle with update when available in API
-                await DeleteRelationshipsSnippet();
-                await CreateRelationshipsSnippet();
+                var cloudSnippet = await GetSnippet(RELATED_PAGES_GUID);
+                if (cloudSnippet != null)
+                {
+                    await PatchRelationshipsSnippet(cloudSnippet);
+                }
+                else
+                {
+                    await CreateRelationshipsSnippet();
+                }
             }
             catch (Exception ex)
             {
@@ -105,6 +133,23 @@ namespace Kentico.KenticoCloudPublishing
                 throw;
             }
         }
+        
+        private IEnumerable<object> GetRelationshipElements()
+        {
+            var relationshipNames = RelationshipNameInfoProvider.GetRelationshipNames()
+                .WhereEqualsOrNull("RelationshipNameIsAdHoc", false)
+                .OnSite(Settings.Sitename);
+
+            var elements = relationshipNames.Select(relationshipName => new
+            {
+                external_id = GetFieldExternalId(RELATED_PAGES_GUID, relationshipName.RelationshipGUID),
+                name = relationshipName.RelationshipName,
+                type = "modular_content",
+                guidelines = $"Relationship '{relationshipName.RelationshipDisplayName}'",
+            }).ToList();
+
+            return elements;
+        }
 
         private async Task CreateRelationshipsSnippet()
         {
@@ -112,21 +157,13 @@ namespace Kentico.KenticoCloudPublishing
             {
                 SyncLog.LogEvent(EventType.INFORMATION, "KenticoCloudPublishing", "CREATERELATIONSHIPSSNIPPET");
 
-                var relationshipNames = RelationshipNameInfoProvider.GetRelationshipNames()
-                    .WhereEqualsOrNull("RelationshipNameIsAdHoc", false)
-                    .OnSite(Settings.Sitename);
-
                 var externalId = GetSnippetExternalId(RELATED_PAGES_GUID);
                 var endpoint = $"/snippets";
 
                 var payload = new {
                     name = "Relationships",
                     external_id = externalId,
-                    elements = relationshipNames.Select(relationshipName => new {
-                        external_id = GetFieldExternalId(RELATED_PAGES_GUID, relationshipName.RelationshipGUID),
-                        name = relationshipName.RelationshipName,
-                        type = "modular_content",
-                    }).ToList(),
+                    elements = GetRelationshipElements(),
                 };
 
                 await ExecuteWithoutResponse(endpoint, HttpMethod.Post, payload);
@@ -134,6 +171,38 @@ namespace Kentico.KenticoCloudPublishing
             catch (Exception ex)
             {
                 SyncLog.LogException("KenticoCloudPublishing", "CREATERELATIONSHIPSSNIPPET", ex);
+                throw;
+            }
+        }
+
+        private async Task PatchRelationshipsSnippet(SnippetData cloudSnippet)
+        {
+            try
+            {
+                SyncLog.LogEvent(EventType.INFORMATION, "KenticoCloudPublishing", "PATCHRELATIONSHIPSSNIPPET");
+
+                var externalId = GetSnippetExternalId(RELATED_PAGES_GUID);
+                var endpoint = $"/snippets/external-id/{HttpUtility.UrlEncode(externalId)}";
+
+                var removeAllExisting = cloudSnippet.Elements.Select(element => new
+                {
+                    op = "remove",
+                    reference = new { id = element.Id }
+                });
+                var addAllCurrent = GetRelationshipElements().Select(element => new
+                {
+                    op = "addInto",
+                    reference = new { id = cloudSnippet.Id },
+                    property_name = "elements",
+                    value = element
+                });
+                var payload = removeAllExisting.AsEnumerable<object>().Concat(addAllCurrent).ToList();
+
+                await ExecuteWithoutResponse(endpoint, PATCH, payload);
+            }
+            catch (Exception ex)
+            {
+                SyncLog.LogException("KenticoCloudPublishing", "PATCHRELATIONSHIPSSNIPPET", ex);
                 throw;
             }
         }
@@ -241,7 +310,7 @@ namespace Kentico.KenticoCloudPublishing
             return ClassSiteInfoProvider.GetClassSiteInfo(contentType.ClassID, siteId) != null;
         }
 
-        public async Task SyncAllContentTypes(CancellationToken? cancellation, bool syncPages)
+        public async Task SyncAllContentTypes(CancellationToken? cancellation)
         {
             SyncLog.Log("Synchronizing content types");
 
@@ -250,7 +319,8 @@ namespace Kentico.KenticoCloudPublishing
                 .WhereIn(
                     "ClassID",
                     ClassSiteInfoProvider.GetClassSites().OnSite(Settings.Sitename).Column("ClassID")
-                );
+                )
+                .WhereNotEquals("ClassName", "CMS.Root");
 
             var index = 0;
 
@@ -265,7 +335,7 @@ namespace Kentico.KenticoCloudPublishing
 
                 SyncLog.Log($"Synchronizing content type {contentType.ClassDisplayName} ({index}/{contentTypes.Count})");
 
-                await SyncContentType(cancellation, contentType, syncPages);
+                await SyncContentType(cancellation, contentType);
             }
         }
 
@@ -290,27 +360,20 @@ namespace Kentico.KenticoCloudPublishing
             }
         }
 
-        public async Task SyncContentType(CancellationToken? cancellation, DataClassInfo contentType, bool syncPages = true)
+        public async Task SyncContentType(CancellationToken? cancellation, DataClassInfo contentType)
         {
             try
             {
                 SyncLog.LogEvent(EventType.INFORMATION, "KenticoCloudPublishing", "SYNCCONTENTTYPE", contentType.ClassDisplayName);
 
-                // TODO - handle with update when available in API and get rid of delete all items
                 var cloudContentType = await GetContentType(contentType);
                 if (cloudContentType != null)
                 {
-                    await _pageSync.DeleteAllItems(cancellation, cloudContentType.Id);
-
-                    await DeleteContentType(contentType);
+                    await PatchContentType(cloudContentType, contentType);
                 }
-
-                await CreateContentType(contentType);
-
-                // Consider removing this with the above, it may take a while, maybe explicit synchronization from the module UI may be sufficient
-                if (syncPages)
+                else
                 {
-                    await _pageSync.SyncAllPages(cancellation, contentType);
+                    await CreateContentType(contentType);
                 }
             }
             catch (Exception ex)
@@ -348,6 +411,80 @@ namespace Kentico.KenticoCloudPublishing
             }
         }
 
+        private IEnumerable<object> GetContentTypeElements(DataClassInfo contentType)
+        {
+            var items = GetItemsToSync(contentType.ClassName);
+
+            var fieldItems = items.Select(item =>
+            {
+                var category = item as FormCategoryInfo;
+                if (category != null)
+                {
+                    // TODO - when content groups are supported
+                    //return new { name = category.CategoryName };
+                    return null;
+                }
+
+                var field = item as FormFieldInfo;
+                if (field != null)
+                {
+                    return new
+                    {
+                        external_id = GetFieldExternalId(contentType.ClassGUID, field.Guid),
+                        name = field.Name, // We use field name, not caption to keep the code name same as the column name in the EMS
+                        guidelines = field.Caption,
+                        is_required = !field.AllowEmpty,
+                        type = GetElementType(field.DataType),
+                        options = (field.DataType == FieldDataType.Binary)
+                            ? new[] {
+                                        new MultipleChoiceElementOption { name = "True" },
+                                        new MultipleChoiceElementOption { name = "False" }
+                            }
+                            : null,
+                    };
+                }
+
+                return null;
+            }).Where(x => x != null).ToList();
+
+            var unsortedAttachmentsElement = new
+            {
+                external_id = GetFieldExternalId(contentType.ClassGUID, UNSORTED_ATTACHMENTS_GUID),
+                name = UNSORTED_ATTACHMENTS,
+                guidelines = "Page attachments",
+                type = "asset",
+            };
+            var relatedPagesElement = new
+            {
+                external_id = GetFieldExternalId(contentType.ClassGUID, RELATED_PAGES_GUID),
+                type = "snippet",
+                snippet = new ExternalIdReference()
+                {
+                    external_id = GetSnippetExternalId(RELATED_PAGES_GUID)
+                },
+            };
+            var categoriesElement = new
+            {
+                external_id = GetFieldExternalId(contentType.ClassGUID, CATEGORIES_GUID),
+                type = "taxonomy",
+                taxonomy_group = new ExternalIdReference()
+                {
+                    external_id = TaxonomySync.GetTaxonomyExternalId(CATEGORIES_GUID)
+                },
+            };
+
+            var allElements = fieldItems
+                .AsEnumerable<object>()
+                .Concat(new object[] {
+                    unsortedAttachmentsElement,
+                    relatedPagesElement,
+                    categoriesElement,
+                })
+                .ToList();
+
+            return allElements;
+        }
+
         public async Task CreateContentType(DataClassInfo contentType)
         {
             try
@@ -356,83 +493,12 @@ namespace Kentico.KenticoCloudPublishing
 
                 var endpoint = $"/types";
 
-                var items = GetItemsToSync(contentType.ClassName);
-
-                var fieldItems = items.Select(item =>
-                {
-                    var category = item as FormCategoryInfo;
-                    if (category != null)
-                    {
-                        // TODO - when content groups are supported
-                        //return new { name = category.CategoryName };
-                        return null;
-                    }
-
-                    var field = item as FormFieldInfo;
-                    if (field != null)
-                    {
-                        return new
-                        {
-                            external_id = GetFieldExternalId(contentType.ClassGUID, field.Guid),
-                            name = field.Name, // We use field name, not caption to keep the code name same as the column name in the EMS
-                            type = GetElementType(field.DataType),
-                            taxonomy_group = (ExternalIdReference)null, // dummy
-                            snippet = (ExternalIdReference)null, // dummy
-                            options = (field.DataType == FieldDataType.Binary)
-                                ? new[] {
-                                        new MultipleChoiceElementOption { name = "True" },
-                                        new MultipleChoiceElementOption { name = "False" }
-                                }
-                                : null,
-                        };
-                    }
-
-                    return null;
-                }).Where(x => x != null).ToList();
-
-                var unsortedAttachmentsElement = new
-                {
-                    external_id = GetFieldExternalId(contentType.ClassGUID, UNSORTED_ATTACHMENTS_GUID),
-                    name = UNSORTED_ATTACHMENTS,
-                    type = "asset",
-                    taxonomy_group = (ExternalIdReference)null, // dummy
-                    snippet = (ExternalIdReference)null, // dummy
-                    options = (MultipleChoiceElementOption[])null // dummy
-                };
-                var relatedPagesElement = new
-                {
-                    external_id = GetFieldExternalId(contentType.ClassGUID, RELATED_PAGES_GUID),
-                    name = (string)null, // dummy
-                    type = "snippet",
-                    taxonomy_group = (ExternalIdReference)null, // dummy
-                    snippet = new ExternalIdReference()
-                    {
-                        external_id = GetSnippetExternalId(RELATED_PAGES_GUID)
-                    },
-                    options = (MultipleChoiceElementOption[])null // dummy
-                };
-                var categoriesElement = new
-                {
-                    external_id = GetFieldExternalId(contentType.ClassGUID, CATEGORIES_GUID),
-                    name = (string)null, // dummy
-                    type = "taxonomy",
-                    taxonomy_group = new ExternalIdReference()
-                    {
-                        external_id = TaxonomySync.GetTaxonomyExternalId(CATEGORIES_GUID)
-                    },
-                    snippet = (ExternalIdReference)null, // dummy
-                    options = (MultipleChoiceElementOption[])null // dummy
-                };
-
+                
                 var payload = new
                 {
                     name = contentType.ClassDisplayName,
                     external_id = GetPageTypeExternalId(contentType.ClassGUID),
-                    elements = fieldItems.Concat(new[] {
-                        unsortedAttachmentsElement,
-                        relatedPagesElement,
-                        categoriesElement,
-                    }).ToList(),
+                    elements = GetContentTypeElements(contentType),
                 };
 
                 await ExecuteWithoutResponse(endpoint, HttpMethod.Post, payload);
@@ -444,8 +510,43 @@ namespace Kentico.KenticoCloudPublishing
             }
         }
 
+        public async Task PatchContentType(ContentTypeData cloudContentType, DataClassInfo contentType)
+        {
+            try
+            {
+                SyncLog.LogEvent(EventType.INFORMATION, "KenticoCloudPublishing", "PATCHCONTENTTYPE", contentType.ClassDisplayName);
+
+                var externalId = GetPageTypeExternalId(contentType.ClassGUID);
+                var endpoint = $"/types/external-id/{HttpUtility.UrlEncode(externalId)}";
+
+                var removeAllExisting = cloudContentType.Elements.Select(element => new
+                {
+                    op = "remove",
+                    reference = new { id = element.Id }
+                });
+                var addAllCurrent = GetContentTypeElements(contentType).Select(element => new
+                {
+                    op = "addInto",
+                    reference = new { id = cloudContentType.Id },
+                    property_name = "elements",
+                    value = element
+                });
+                var payload = removeAllExisting
+                    .AsEnumerable<object>()
+                    .Concat(addAllCurrent)
+                    .ToList();
+
+                await ExecuteWithoutResponse(endpoint, PATCH, payload);
+            }
+            catch (Exception ex)
+            {
+                SyncLog.LogException("KenticoCloudPublishing", "PATCHCONTENTTYPE", ex);
+                throw;
+            }
+        }
+
         #endregion
-                       
+
         #region "Purge"
 
         private async Task<List<Guid>> GetAllContentTypeIds(string continuationToken = null)

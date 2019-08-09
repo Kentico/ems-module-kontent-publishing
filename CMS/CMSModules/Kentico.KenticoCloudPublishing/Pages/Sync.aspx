@@ -19,6 +19,7 @@
             <cms:LocalizedButton ID="btnSyncCategories" runat="server" OnClick="btnSyncCategories_Click" EnableViewState="false" Text="Synchronize categories" ButtonStyle="Default" />
             <cms:LocalizedButton ID="btnSyncContentTypes" runat="server" OnClick="btnSyncContentTypes_Click" EnableViewState="false" Text="Synchronize content types" ButtonStyle="Default" />
             <cms:LocalizedButton ID="btnSyncAttachments" runat="server" OnClick="btnSyncAttachments_Click" EnableViewState="false" Text="Synchronize attachments" ButtonStyle="Default" />
+            <cms:LocalizedButton ID="btnSyncLanguages" runat="server" OnClick="btnSyncLanguages_Click" EnableViewState="false" Text="Synchronize cultures" ButtonStyle="Default" />
             <cms:LocalizedButton ID="btnSyncPages" runat="server" OnClick="btnSyncPages_Click" EnableViewState="false" Text="Synchronize pages" ButtonStyle="Default" />
             <cms:LocalizedButton ID="btnDeleteAll" runat="server" OnClick="btnDeleteAll_Click" EnableViewState="false" Text="Delete all data in Kentico Cloud" ButtonStyle="Default" OnClientClick="return confirm('This will delete all data in the target Kentico Cloud project, not only the data synchronized from this site. Are you sure you want to continue?')" />
         </asp:PlaceHolder>

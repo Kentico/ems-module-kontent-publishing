@@ -1,5 +1,5 @@
 ﻿using System;
-
+using System.Collections.Generic;
 using Newtonsoft.Json;
 
 namespace Kentico.KenticoCloudPublishing
@@ -8,5 +8,8 @@ namespace Kentico.KenticoCloudPublishing
     {
         [JsonProperty("id")]
         public Guid Id { get; set; }
+
+        [JsonProperty("elements")]
+        public IEnumerable<ElementData> Elements { get; set; }
     }
 }

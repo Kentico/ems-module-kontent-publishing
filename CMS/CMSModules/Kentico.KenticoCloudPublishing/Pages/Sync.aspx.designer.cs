@@ -111,6 +111,15 @@ public partial class CMSModules_Kentico_KenticoCloudPublishing_Pages_Sync {
     protected global::CMS.Base.Web.UI.LocalizedButton btnSyncAttachments;
     
     /// <summary>
+    /// btnSyncLanguages control.
+    /// </summary>
+    /// <remarks>
+    /// Auto-generated field.
+    /// To modify move field declaration from designer file to code-behind file.
+    /// </remarks>
+    protected global::CMS.Base.Web.UI.LocalizedButton btnSyncLanguages;
+    
+    /// <summary>
     /// btnSyncPages control.
     /// </summary>
     /// <remarks>
