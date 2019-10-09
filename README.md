@@ -138,3 +138,5 @@ Some of the features will be finalized once the related parts of the API are fin
 * Content groups - Once they are supported by the CM API, target content type elements will be split to multiple tabs.
 
 ![Analytics](https://kentico-ga-beacon.azurewebsites.net/api/UA-69014260-4/Kentico/ems-module-kontent-publishing?pixel)
+
+## [Questions & Support](https://github.com/Kentico/Home/blob/master/README.md)
