@@ -2,7 +2,7 @@
 
 namespace Kentico.EMS.Kontent.Publishing
 {
-    internal class CloudSyncWorker : SimpleQueueWorker<CloudSyncWorker>
+    internal class KontentSyncWorker : SimpleQueueWorker<KontentSyncWorker>
     {
     }
 }

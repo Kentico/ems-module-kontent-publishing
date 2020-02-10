@@ -30,11 +30,11 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync : GlobalAdm
 
     protected void Page_Load(object sender, EventArgs e)
     {
-        PageTitle.TitleText = "Kentico Cloud Publishing";
+        PageTitle.TitleText = "Kentico Kontent Publishing";
 
         PageBreadcrumbs.Items.Add(new BreadcrumbItem
         {
-            Text = "Kentico Cloud Publishing",
+            Text = "Kentico Kontent Publishing",
         });
 
         ctlAsyncLog.TitleText = "Synchronization in progress ...";

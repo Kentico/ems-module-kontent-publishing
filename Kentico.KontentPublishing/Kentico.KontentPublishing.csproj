@@ -574,7 +574,7 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Helpers\CloudSyncWorker.cs" />
+    <Compile Include="Helpers\KontentSyncWorker.cs" />
     <Compile Include="Helpers\SyncLog.cs" />
     <Compile Include="Models\ContentTypes\ElementData.cs" />
     <Compile Include="Models\ContentTypes\SnippetData.cs" />
@@ -586,6 +586,7 @@
     <Compile Include="Models\Assets\AssetsResponse.cs" />
     <Compile Include="Models\Languages\LanguageData.cs" />
     <Compile Include="Models\Languages\LanguagesResponse.cs" />
+    <Compile Include="Models\Taxonomies\TaxonomyResponse.cs" />
     <Compile Include="Models\Taxonomies\TaxonomyData.cs" />
     <Compile Include="Sync\AssetSync.cs" />
     <Compile Include="Models\ContentTypes\ContentTypesResponse.cs" />

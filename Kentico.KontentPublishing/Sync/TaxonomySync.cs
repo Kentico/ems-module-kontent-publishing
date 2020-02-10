@@ -151,13 +151,13 @@ namespace Kentico.EMS.Kontent.Publishing
             var query = (continuationToken != null) ? "?continuationToken=" + HttpUtility.UrlEncode(continuationToken) : "";
             var endpoint = $"/taxonomies{query}";
 
-            var response = await ExecuteWithResponse<List<TaxonomyData>>(endpoint, HttpMethod.Get);
+            var response = await ExecuteWithResponse<TaxonomyResponse>(endpoint, HttpMethod.Get);
             if (response == null)
             {
                 return new List<Guid>();
             }
 
-            var ids = response.Select(item => item.Id);
+            var ids = response.Taxonomies.Select(item => item.Id);
 
             return ids.ToList();
         }

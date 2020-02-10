@@ -15,6 +15,7 @@ namespace Kentico.EMS.Kontent.Publishing
 {
     internal class SyncBase
     {
+        private const string ApiRoot = "https://manage.kontent.ai/v2";
         private SyncSettings _settings;
 
         HttpClient _client = new HttpClient();
@@ -91,7 +92,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
                 throw new HttpException(
                     (int)response.StatusCode,
-                    $"Request to Kentico Cloud failed with status code {response.StatusCode}, response content:\n\n{content}"
+                    $"Request to Kentico Kontent failed with status code {response.StatusCode}, operation:\n{response.RequestMessage.Method} {response.RequestMessage.RequestUri}, response content:\n\n{content}"
                 );
             }
         }
@@ -120,7 +121,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
         protected async Task ExecuteWithoutResponse(string endpoint, HttpMethod method, object payload = null, bool includeNullValues = false)
         {
-            var endpointUrl = $"https://manage.kenticocloud.com/v2/projects/{_settings.ProjectId}{endpoint}";
+            var endpointUrl = $"{ApiRoot}/projects/{_settings.ProjectId}{endpoint}";
 
             using (var response = await SendMessage(() => CreateMessage(endpointUrl, method, payload, includeNullValues)))
             {
@@ -130,7 +131,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
         protected async Task<T> ExecuteWithResponse<T>(string endpoint, HttpMethod method, object payload = null, bool includeNullValues = false) where T : class
         {
-            var endpointUrl = $"https://manage.kenticocloud.com/v2/projects/{_settings.ProjectId}{endpoint}";
+            var endpointUrl = $"{ApiRoot}/projects/{_settings.ProjectId}{endpoint}";
 
             using (var response = await SendMessage(() => CreateMessage(endpointUrl, method, payload, includeNullValues)))
             {
@@ -163,7 +164,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
         protected async Task<T> ExecuteUploadWithResponse<T>(string endpoint, byte[] data, string contentType) where T : class
         {
-            var endpointUrl = $"https://manage.kenticocloud.com/v2/projects/{_settings.ProjectId}{endpoint}";
+            var endpointUrl = $"{ApiRoot}/projects/{_settings.ProjectId}{endpoint}";
 
             using (var response = await SendMessage(() => CreateUploadMessage(endpointUrl, data, contentType)))
             {
