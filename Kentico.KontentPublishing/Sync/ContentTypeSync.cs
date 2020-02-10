@@ -87,10 +87,10 @@ namespace Kentico.EMS.Kontent.Publishing
 
                 SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "UPSERTRELATIONSHIPSSNIPPET");
 
-                var cloudSnippet = await GetSnippet(RELATED_PAGES_GUID);
-                if (cloudSnippet != null)
+                var kontentSnippet = await GetSnippet(RELATED_PAGES_GUID);
+                if (kontentSnippet != null)
                 {
-                    await PatchRelationshipsSnippet(cloudSnippet);
+                    await PatchRelationshipsSnippet(kontentSnippet);
                 }
                 else
                 {
@@ -175,7 +175,7 @@ namespace Kentico.EMS.Kontent.Publishing
             }
         }
 
-        private async Task PatchRelationshipsSnippet(SnippetData cloudSnippet)
+        private async Task PatchRelationshipsSnippet(SnippetData kontentSnippet)
         {
             try
             {
@@ -184,16 +184,15 @@ namespace Kentico.EMS.Kontent.Publishing
                 var externalId = GetSnippetExternalId(RELATED_PAGES_GUID);
                 var endpoint = $"/snippets/external-id/{HttpUtility.UrlEncode(externalId)}";
 
-                var removeAllExisting = cloudSnippet.Elements.Select(element => new
+                var removeAllExisting = kontentSnippet.Elements.Select(element => new
                 {
                     op = "remove",
-                    reference = new { id = element.Id }
+                    path = $"/elements/id:{element.Id}"
                 });
                 var addAllCurrent = GetRelationshipElements().Select(element => new
                 {
                     op = "addInto",
-                    reference = new { id = cloudSnippet.Id },
-                    property_name = "elements",
+                    path = "/elements",
                     value = element
                 });
                 var payload = removeAllExisting.AsEnumerable<object>().Concat(addAllCurrent).ToList();
@@ -366,10 +365,10 @@ namespace Kentico.EMS.Kontent.Publishing
             {
                 SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "SYNCCONTENTTYPE", contentType.ClassDisplayName);
 
-                var cloudContentType = await GetContentType(contentType);
-                if (cloudContentType != null)
+                var kontentContentType = await GetContentType(contentType);
+                if (kontentContentType != null)
                 {
-                    await PatchContentType(cloudContentType, contentType);
+                    await PatchContentType(kontentContentType, contentType);
                 }
                 else
                 {
@@ -437,8 +436,8 @@ namespace Kentico.EMS.Kontent.Publishing
                         type = GetElementType(field.DataType),
                         options = (field.DataType == FieldDataType.Binary)
                             ? new[] {
-                                        new MultipleChoiceElementOption { name = "True" },
-                                        new MultipleChoiceElementOption { name = "False" }
+                                new MultipleChoiceElementOption { name = "True" },
+                                new MultipleChoiceElementOption { name = "False" }
                             }
                             : null,
                     };
@@ -510,7 +509,7 @@ namespace Kentico.EMS.Kontent.Publishing
             }
         }
 
-        public async Task PatchContentType(ContentTypeData cloudContentType, DataClassInfo contentType)
+        public async Task PatchContentType(ContentTypeData kontentContentType, DataClassInfo contentType)
         {
             try
             {
@@ -519,16 +518,15 @@ namespace Kentico.EMS.Kontent.Publishing
                 var externalId = GetPageTypeExternalId(contentType.ClassGUID);
                 var endpoint = $"/types/external-id/{HttpUtility.UrlEncode(externalId)}";
 
-                var removeAllExisting = cloudContentType.Elements.Select(element => new
+                var removeAllExisting = kontentContentType.Elements.Select(element => new
                 {
                     op = "remove",
-                    reference = new { id = element.Id }
+                    path = $"/elements/id:{element.Id}"
                 });
                 var addAllCurrent = GetContentTypeElements(contentType).Select(element => new
                 {
                     op = "addInto",
-                    reference = new { id = cloudContentType.Id },
-                    property_name = "elements",
+                    path = "/elements",
                     value = element
                 });
                 var payload = removeAllExisting

@@ -102,7 +102,7 @@ namespace Kentico.EMS.Kontent.Publishing
         
         private void RunSynchronization(Func<Task> action)
         {
-            CloudSyncWorker.Current.Enqueue(
+            KontentSyncWorker.Current.Enqueue(
                 () => Task.Run(async () => await action()).Wait()
             );
         }
