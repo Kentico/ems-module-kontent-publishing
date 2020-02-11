@@ -268,7 +268,7 @@ namespace Kentico.EMS.Kontent.Publishing
             {
                 element = new
                 {
-                    external_id = ContentTypeSync.GetFieldExternalId(contentType.ClassGUID, ContentTypeSync.CATEGORIES_GUID)
+                    external_id = ContentTypeSync.GetFieldExternalId(contentType.ClassGUID, TaxonomySync.CATEGORIES_GUID)
                 },
                 value = (object)GetCategoryGuids(node).Select(guid => new {
                     external_id = TaxonomySync.GetCategoryTermExternalId(guid)

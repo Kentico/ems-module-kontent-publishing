@@ -14,6 +14,10 @@ namespace Kentico.EMS.Kontent.Publishing
 {
     internal partial class TaxonomySync : SyncBase
     {
+        public const string CATEGORIES = "Categories";
+        public static Guid CATEGORIES_GUID = new Guid("c13a89d6-c5a9-4c6c-bceb-e27bf04e26d3");
+
+
         public TaxonomySync(SyncSettings settings) : base(settings)
         {
         }
@@ -79,7 +83,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
                 SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "DELETECATEGORIESTAXONOMY");
 
-                var externalId = GetTaxonomyExternalId(ContentTypeSync.CATEGORIES_GUID);
+                var externalId = GetTaxonomyExternalId(CATEGORIES_GUID);
                 var endpoint = $"/taxonomies/external-id/{HttpUtility.UrlEncode(externalId)}";
 
                 await ExecuteWithoutResponse(endpoint, HttpMethod.Delete);
@@ -105,7 +109,8 @@ namespace Kentico.EMS.Kontent.Publishing
         {
             return categories.Where(c => c.CategoryParentID == parentId).Select(category => new CategoryTerm()
             {
-                name = category.CategoryName,
+                name = category.CategoryDisplayName,
+                codename = category.CategoryName.ToLower(),
                 external_id = GetCategoryTermExternalId(category.CategoryGUID),
                 terms = GetCategoryTerms(categories, category.CategoryID)
             }).ToList();
@@ -123,12 +128,13 @@ namespace Kentico.EMS.Kontent.Publishing
                     .OrderBy("CategorySiteID", "CategoryOrder")
                     .TypedResult;
 
-                var externalId = GetTaxonomyExternalId(ContentTypeSync.CATEGORIES_GUID);
+                var externalId = GetTaxonomyExternalId(CATEGORIES_GUID);
                 var endpoint = $"/taxonomies";
 
                 var payload = new
                 {
                     name = "Categories",
+                    codename = CATEGORIES.ToLower(),
                     external_id = externalId,
                     terms = GetCategoryTerms(categories),
                 };

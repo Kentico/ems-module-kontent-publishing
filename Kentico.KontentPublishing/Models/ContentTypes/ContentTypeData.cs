@@ -11,5 +11,8 @@ namespace Kentico.EMS.Kontent.Publishing
 
         [JsonProperty("elements")]
         public IEnumerable<ElementData> Elements { get; set; }
+
+        [JsonProperty("content_groups")]
+        public IEnumerable<ContentGroupData> ContentGroups { get; set; }
     }
 }
