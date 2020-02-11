@@ -99,7 +99,7 @@ namespace Kentico.EMS.Kontent.Publishing
                 var payload = new
                 {
                     name = culture.CultureName,
-                    codename = culture.CultureCode,
+                    codename = culture.CultureCode.ToLower(),
                     external_id = externalId,
                     is_active = true,
                     // Default language is always empty, and no fallback is used as a result

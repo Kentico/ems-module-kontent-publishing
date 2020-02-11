@@ -576,6 +576,7 @@
   <ItemGroup>
     <Compile Include="Helpers\KontentSyncWorker.cs" />
     <Compile Include="Helpers\SyncLog.cs" />
+    <Compile Include="Models\ContentTypes\ContentGroupData.cs" />
     <Compile Include="Models\ContentTypes\ElementData.cs" />
     <Compile Include="Models\ContentTypes\SnippetData.cs" />
     <Compile Include="Models\ContentTypes\SnippetsResponse.cs" />

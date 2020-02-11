@@ -10,6 +10,7 @@ using CMS.DataEngine;
 using CMS.DocumentEngine;
 using CMS.EventLog;
 using CMS.FormEngine;
+using CMS.Helpers;
 using CMS.Relationships;
 using CMS.SiteProvider;
 
@@ -54,6 +55,11 @@ namespace Kentico.EMS.Kontent.Publishing
             return $"node|{classGuid}";
         }
 
+        public static string GetGroupExternalId(Guid classGuid, Guid guid)
+        {
+            return $"group|{classGuid}|{guid}";
+        }
+
         #endregion
 
         #region "Relationships"
@@ -78,7 +84,7 @@ namespace Kentico.EMS.Kontent.Publishing
                 throw;
             }
         }
-        
+
         public async Task SyncRelationships(CancellationToken? cancellation)
         {
             try
@@ -133,7 +139,7 @@ namespace Kentico.EMS.Kontent.Publishing
                 throw;
             }
         }
-        
+
         private IEnumerable<object> GetRelationshipElements()
         {
             var relationshipNames = RelationshipNameInfoProvider.GetRelationshipNames()
@@ -143,9 +149,9 @@ namespace Kentico.EMS.Kontent.Publishing
             var elements = relationshipNames.Select(relationshipName => new
             {
                 external_id = GetFieldExternalId(RELATED_PAGES_GUID, relationshipName.RelationshipGUID),
-                name = relationshipName.RelationshipName,
+                name = relationshipName.RelationshipDisplayName,
+                codename = relationshipName.RelationshipName.ToLower(),
                 type = "modular_content",
-                guidelines = $"Relationship '{relationshipName.RelationshipDisplayName}'",
             }).ToList();
 
             return elements;
@@ -160,7 +166,8 @@ namespace Kentico.EMS.Kontent.Publishing
                 var externalId = GetSnippetExternalId(RELATED_PAGES_GUID);
                 var endpoint = $"/snippets";
 
-                var payload = new {
+                var payload = new
+                {
                     name = "Relationships",
                     external_id = externalId,
                     elements = GetRelationshipElements(),
@@ -211,13 +218,16 @@ namespace Kentico.EMS.Kontent.Publishing
         #region "Fields"
 
         public const string UNSORTED_ATTACHMENTS = "UnsortedAttachments";
+        public const string UNSORTED_ATTACHMENTS_NAME = "Attachments";
         public static Guid UNSORTED_ATTACHMENTS_GUID = new Guid("b21d2b8e-b793-413b-bce6-37461aa2963e");
 
         public const string RELATED_PAGES = "RelatedPages";
+        public const string RELATED_PAGES_NAME = "Related pages";
         public static Guid RELATED_PAGES_GUID = new Guid("61688369-a239-4c8c-93ff-af314a3489a2");
 
-        public const string CATEGORIES = "Categories";
-        public static Guid CATEGORIES_GUID = new Guid("c13a89d6-c5a9-4c6c-bceb-e27bf04e26d3");
+        public const string CONTENT = "Content";
+        public static Guid CONTENT_GUID = new Guid("68faa0d2-f17f-4e88-b019-64d526a626ec");
+
 
         private static HashSet<string> SystemFields = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase) {
             "DocumentName",
@@ -293,7 +303,7 @@ namespace Kentico.EMS.Kontent.Publishing
         #endregion
 
         #region "Synchronization"
-       
+
         public bool IsAtSynchronizedSite(RelationshipNameInfo relationshipName)
         {
             var siteId = SiteInfoProvider.GetSiteID(Settings.Sitename);
@@ -410,28 +420,65 @@ namespace Kentico.EMS.Kontent.Publishing
             }
         }
 
+        private IEnumerable<object> GetContentTypeGroups(DataClassInfo contentType)
+        {
+            return new[]
+            {
+                new
+                {
+                    name = CONTENT,
+                    external_id = GetGroupExternalId(contentType.ClassGUID, CONTENT_GUID)
+                },
+                new
+                {
+                    name = UNSORTED_ATTACHMENTS_NAME,
+                    external_id = GetGroupExternalId(contentType.ClassGUID, UNSORTED_ATTACHMENTS_GUID)
+                },
+                new
+                {
+                    name = TaxonomySync.CATEGORIES,
+                    external_id = GetGroupExternalId(contentType.ClassGUID, TaxonomySync.CATEGORIES_GUID)
+                },
+                new
+                {
+                    name = RELATED_PAGES_NAME,
+                    external_id = GetGroupExternalId(contentType.ClassGUID, RELATED_PAGES_GUID)
+                },
+            };
+        }
+
         private IEnumerable<object> GetContentTypeElements(DataClassInfo contentType)
         {
             var items = GetItemsToSync(contentType.ClassName);
+            object pendingCategory = null;
 
-            var fieldItems = items.Select(item =>
+            var fieldItems = items.SelectMany(item =>
             {
                 var category = item as FormCategoryInfo;
                 if (category != null)
                 {
-                    // TODO - when content groups are supported
-                    //return new { name = category.CategoryName };
-                    return null;
+                    pendingCategory = new
+                    {
+                        external_id = $"group|{contentType.ClassGUID}|{ValidationHelper.GetCodeName(category.CategoryName)}",
+                        type = "guidelines",
+                        guidelines = $"<h2>{category.CategoryName}</h2>",
+                        content_group = new ExternalIdReference()
+                        {
+                            external_id = GetGroupExternalId(contentType.ClassGUID, CONTENT_GUID)
+                        }
+                    };
+                    return new object[0];
                 }
 
                 var field = item as FormFieldInfo;
                 if (field != null)
                 {
-                    return new
+                    var element = new
                     {
                         external_id = GetFieldExternalId(contentType.ClassGUID, field.Guid),
-                        name = field.Name, // We use field name, not caption to keep the code name same as the column name in the EMS
-                        guidelines = field.Caption,
+                        name = GetElementName(field),
+                        codename = field.Name.ToLower(),
+                        guidelines = GetElementGuidelines(field),
                         is_required = !field.AllowEmpty,
                         type = GetElementType(field.DataType),
                         options = (field.DataType == FieldDataType.Binary)
@@ -440,7 +487,20 @@ namespace Kentico.EMS.Kontent.Publishing
                                 new MultipleChoiceElementOption { name = "False" }
                             }
                             : null,
+                        content_group = new ExternalIdReference()
+                        {
+                            external_id = GetGroupExternalId(contentType.ClassGUID, CONTENT_GUID)
+                        }
                     };
+
+                    if (pendingCategory != null)
+                    {
+                        // Only add category if there are some elements inside it
+                        var elementWithCategory = new[] { pendingCategory, element };
+                        pendingCategory = null;
+                        return elementWithCategory;
+                    }
+                    return new[] { element };
                 }
 
                 return null;
@@ -449,26 +509,42 @@ namespace Kentico.EMS.Kontent.Publishing
             var unsortedAttachmentsElement = new
             {
                 external_id = GetFieldExternalId(contentType.ClassGUID, UNSORTED_ATTACHMENTS_GUID),
-                name = UNSORTED_ATTACHMENTS,
-                guidelines = "Page attachments",
+                name = UNSORTED_ATTACHMENTS_NAME,
+                codename = UNSORTED_ATTACHMENTS.ToLower(),
                 type = "asset",
+                content_group = new ExternalIdReference()
+                {
+                    external_id = GetGroupExternalId(contentType.ClassGUID, UNSORTED_ATTACHMENTS_GUID)
+                },
             };
             var relatedPagesElement = new
             {
                 external_id = GetFieldExternalId(contentType.ClassGUID, RELATED_PAGES_GUID),
+                name = RELATED_PAGES_NAME,
+                codename = RELATED_PAGES.ToLower(),
                 type = "snippet",
                 snippet = new ExternalIdReference()
                 {
                     external_id = GetSnippetExternalId(RELATED_PAGES_GUID)
                 },
+                content_group = new ExternalIdReference()
+                {
+                    external_id = GetGroupExternalId(contentType.ClassGUID, RELATED_PAGES_GUID)
+                },
             };
             var categoriesElement = new
             {
-                external_id = GetFieldExternalId(contentType.ClassGUID, CATEGORIES_GUID),
+                external_id = GetFieldExternalId(contentType.ClassGUID, TaxonomySync.CATEGORIES_GUID),
+                name = TaxonomySync.CATEGORIES,
+                codename = TaxonomySync.CATEGORIES.ToLower(),
                 type = "taxonomy",
                 taxonomy_group = new ExternalIdReference()
                 {
-                    external_id = TaxonomySync.GetTaxonomyExternalId(CATEGORIES_GUID)
+                    external_id = TaxonomySync.GetTaxonomyExternalId(TaxonomySync.CATEGORIES_GUID)
+                },
+                content_group = new ExternalIdReference()
+                {
+                    external_id = GetGroupExternalId(contentType.ClassGUID, TaxonomySync.CATEGORIES_GUID)
                 },
             };
 
@@ -484,6 +560,35 @@ namespace Kentico.EMS.Kontent.Publishing
             return allElements;
         }
 
+        private object GetElementGuidelines(FormFieldInfo field)
+        {
+            return field.GetPropertyValue(FormFieldPropertyEnum.ExplanationText);
+        }
+
+        private string GetElementName(FormFieldInfo field)
+        {
+            switch (field.Name.ToLower())
+            {
+                case "documentname":
+                    return "Document name";
+
+                case "documentpublishfrom":
+                    return "Publish from";
+
+                case "documentpublishto":
+                    return "Publish to";
+
+                default:
+                    {
+                        if (!string.IsNullOrEmpty(field.Caption))
+                        {
+                            return field.Caption;
+                        }
+                        return field.Name;
+                    }
+            }
+        }
+
         public async Task CreateContentType(DataClassInfo contentType)
         {
             try
@@ -492,11 +597,12 @@ namespace Kentico.EMS.Kontent.Publishing
 
                 var endpoint = $"/types";
 
-                
+
                 var payload = new
                 {
                     name = contentType.ClassDisplayName,
                     external_id = GetPageTypeExternalId(contentType.ClassGUID),
+                    content_groups = GetContentTypeGroups(contentType),
                     elements = GetContentTypeElements(contentType),
                 };
 
@@ -518,20 +624,35 @@ namespace Kentico.EMS.Kontent.Publishing
                 var externalId = GetPageTypeExternalId(contentType.ClassGUID);
                 var endpoint = $"/types/external-id/{HttpUtility.UrlEncode(externalId)}";
 
-                var removeAllExisting = kontentContentType.Elements.Select(element => new
+                var removeAllExistingElements = kontentContentType.Elements.Select(element => new
                 {
                     op = "remove",
                     path = $"/elements/id:{element.Id}"
                 });
-                var addAllCurrent = GetContentTypeElements(contentType).Select(element => new
+                var removeAllExistingGroups = kontentContentType.ContentGroups.Select(group => new
+                {
+                    op = "remove",
+                    path = $"/content_groups/id:{group.Id}"
+                });
+
+                var addAllCurrentElements = GetContentTypeElements(contentType).Select(element => new
                 {
                     op = "addInto",
                     path = "/elements",
                     value = element
                 });
-                var payload = removeAllExisting
+                var addAllCurrentGroups = GetContentTypeGroups(contentType).Select(group => new
+                {
+                    op = "addInto",
+                    path = "/content_groups",
+                    value = group
+                });
+
+                var payload = removeAllExistingElements
                     .AsEnumerable<object>()
-                    .Concat(addAllCurrent)
+                    .Concat(removeAllExistingGroups)
+                    .Concat(addAllCurrentGroups)
+                    .Concat(addAllCurrentElements)
                     .ToList();
 
                 await ExecuteWithoutResponse(endpoint, PATCH, payload);
