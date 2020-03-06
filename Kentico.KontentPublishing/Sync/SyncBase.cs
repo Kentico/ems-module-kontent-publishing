@@ -15,6 +15,8 @@ namespace Kentico.EMS.Kontent.Publishing
 {
     internal class SyncBase
     {
+        protected static HttpMethod PATCH = new HttpMethod("PATCH");
+
         private const string ApiRoot = "https://manage.kontent.ai/v2";
         private SyncSettings _settings;
 

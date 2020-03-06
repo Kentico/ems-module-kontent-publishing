@@ -14,10 +14,12 @@ namespace Kentico.EMS.Kontent.Publishing
 {
     internal partial class TaxonomySync : SyncBase
     {
+        private const int TAXONOMY_NAME_MAXLENGTH = 50;
+        private const int TAXONOMY_CODENAME_MAXLENGTH = 60;
+
         public const string CATEGORIES = "Categories";
         public static Guid CATEGORIES_GUID = new Guid("c13a89d6-c5a9-4c6c-bceb-e27bf04e26d3");
-
-
+        
         public TaxonomySync(SyncSettings settings) : base(settings)
         {
         }
@@ -40,7 +42,9 @@ namespace Kentico.EMS.Kontent.Publishing
 
         public static readonly string[] UsedCategoryColumns = new[]
         {
+            "CategoryDisplayName",
             "CategoryName",
+            "CategoryParentID",
         };
 
         public bool IsAtSynchronizedSite(CategoryInfo category)
@@ -109,8 +113,8 @@ namespace Kentico.EMS.Kontent.Publishing
         {
             return categories.Where(c => c.CategoryParentID == parentId).Select(category => new CategoryTerm()
             {
-                name = category.CategoryDisplayName,
-                codename = category.CategoryName.ToLower(),
+                name = category.CategoryDisplayName.LimitedTo(TAXONOMY_NAME_MAXLENGTH),
+                codename = category.CategoryName.ToLower().LimitedTo(TAXONOMY_CODENAME_MAXLENGTH),
                 external_id = GetCategoryTermExternalId(category.CategoryGUID),
                 terms = GetCategoryTerms(categories, category.CategoryID)
             }).ToList();
@@ -124,6 +128,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
                 var categories = CategoryInfoProvider.GetCategories()
                     .OnSite(Settings.Sitename, true)
+                    .WhereNull("CategoryUserID")
                     // Global first
                     .OrderBy("CategorySiteID", "CategoryOrder")
                     .TypedResult;
@@ -163,9 +168,21 @@ namespace Kentico.EMS.Kontent.Publishing
                 return new List<Guid>();
             }
 
-            var ids = response.Taxonomies.Select(item => item.Id);
+            var ids = response.Taxonomies
+                .Select(item => item.Id).ToList();
 
-            return ids.ToList();
+            if (
+                (ids.Count > 0) &&
+                (response.Pagination != null) &&
+                !string.IsNullOrEmpty(response.Pagination.ContinuationToken) &&
+                (response.Pagination.ContinuationToken != continuationToken)
+            )
+            {
+                var nextIds = await GetAllTaxonomyIds(response.Pagination.ContinuationToken);
+                ids = ids.Concat(nextIds).ToList();
+            }
+
+            return ids;
         }
 
         public async Task DeleteAllTaxonomies(CancellationToken? cancellation)

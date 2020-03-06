@@ -11,7 +11,7 @@
 
 public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync
 {
-    
+
     /// <summary>
     /// pnlLog control.
     /// </summary>
@@ -20,7 +20,7 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync
     /// To modify move field declaration from designer file to code-behind file.
     /// </remarks>
     protected global::System.Web.UI.WebControls.Panel pnlLog;
-    
+
     /// <summary>
     /// ctlAsyncLog control.
     /// </summary>
@@ -29,16 +29,16 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync
     /// To modify move field declaration from designer file to code-behind file.
     /// </remarks>
     protected global::CMSAdminControls_AsyncLogDialog ctlAsyncLog;
-    
+
     /// <summary>
-    /// plcTextBox control.
+    /// plcSync control.
     /// </summary>
     /// <remarks>
     /// Auto-generated field.
     /// To modify move field declaration from designer file to code-behind file.
     /// </remarks>
-    protected global::System.Web.UI.WebControls.PlaceHolder plcTextBox;
-    
+    protected global::System.Web.UI.WebControls.PlaceHolder plcSync;
+
     /// <summary>
     /// btnSyncAll control.
     /// </summary>
@@ -47,7 +47,7 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync
     /// To modify move field declaration from designer file to code-behind file.
     /// </remarks>
     protected global::CMS.Base.Web.UI.LocalizedButton btnSyncAll;
-    
+
     /// <summary>
     /// btnDangerZone control.
     /// </summary>
@@ -56,16 +56,16 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync
     /// To modify move field declaration from designer file to code-behind file.
     /// </remarks>
     protected global::CMS.Base.Web.UI.LocalizedButton btnDangerZone;
-    
+
     /// <summary>
-    /// plcDangerZone control.
+    /// pnlDangerZone control.
     /// </summary>
     /// <remarks>
     /// Auto-generated field.
     /// To modify move field declaration from designer file to code-behind file.
     /// </remarks>
-    protected global::System.Web.UI.WebControls.PlaceHolder plcDangerZone;
-    
+    protected global::System.Web.UI.WebControls.Panel pnlDangerZone;
+
     /// <summary>
     /// btnSyncMediaLibraries control.
     /// </summary>
@@ -74,7 +74,7 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync
     /// To modify move field declaration from designer file to code-behind file.
     /// </remarks>
     protected global::CMS.Base.Web.UI.LocalizedButton btnSyncMediaLibraries;
-    
+
     /// <summary>
     /// btnSyncRelationships control.
     /// </summary>
@@ -83,7 +83,7 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync
     /// To modify move field declaration from designer file to code-behind file.
     /// </remarks>
     protected global::CMS.Base.Web.UI.LocalizedButton btnSyncRelationships;
-    
+
     /// <summary>
     /// btnSyncCategories control.
     /// </summary>
@@ -92,7 +92,7 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync
     /// To modify move field declaration from designer file to code-behind file.
     /// </remarks>
     protected global::CMS.Base.Web.UI.LocalizedButton btnSyncCategories;
-    
+
     /// <summary>
     /// btnSyncContentTypes control.
     /// </summary>
@@ -101,7 +101,7 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync
     /// To modify move field declaration from designer file to code-behind file.
     /// </remarks>
     protected global::CMS.Base.Web.UI.LocalizedButton btnSyncContentTypes;
-    
+
     /// <summary>
     /// btnSyncAttachments control.
     /// </summary>
@@ -110,7 +110,7 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync
     /// To modify move field declaration from designer file to code-behind file.
     /// </remarks>
     protected global::CMS.Base.Web.UI.LocalizedButton btnSyncAttachments;
-    
+
     /// <summary>
     /// btnSyncLanguages control.
     /// </summary>
@@ -119,7 +119,7 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync
     /// To modify move field declaration from designer file to code-behind file.
     /// </remarks>
     protected global::CMS.Base.Web.UI.LocalizedButton btnSyncLanguages;
-    
+
     /// <summary>
     /// btnSyncPages control.
     /// </summary>
@@ -128,7 +128,7 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync
     /// To modify move field declaration from designer file to code-behind file.
     /// </remarks>
     protected global::CMS.Base.Web.UI.LocalizedButton btnSyncPages;
-    
+
     /// <summary>
     /// btnDeleteAll control.
     /// </summary>

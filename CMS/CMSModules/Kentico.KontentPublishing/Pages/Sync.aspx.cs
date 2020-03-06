@@ -37,6 +37,13 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync : GlobalAdm
             Text = "Kentico Kontent Publishing",
         });
 
+        if (!GetModule().isConfigurationValid())
+        {
+            plcSync.Visible = false;
+            ShowWarning("Kentico Kontent Publishing configuration is invalid, check the configuration.");
+            return;
+        }
+
         ctlAsyncLog.TitleText = "Synchronization in progress ...";
 
         ctlAsyncLog.OnFinished += OnFinished;
@@ -113,6 +120,7 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync : GlobalAdm
                 }
                 catch (Exception ex)
                 {
+                    SyncLog.LogException("KenticoKontentPublishing", "UNHANDLEDERROR", ex);
                     SyncLog.Log(ex.Message);
                     ctlAsyncLog.ProcessData.Error = ex.Message;
                 }
@@ -218,7 +226,7 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync : GlobalAdm
 
     protected void btnDangerZone_Click(object sender, EventArgs e)
     {
-        plcDangerZone.Visible = true;
+        pnlDangerZone.Visible = true;
         btnDangerZone.Visible = false;
         ShowWarning("DANGER ZONE: The extra actions are meant for debug and cleanup purposes, use with caution.");
     }

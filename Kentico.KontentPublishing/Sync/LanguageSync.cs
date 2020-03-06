@@ -15,6 +15,8 @@ namespace Kentico.EMS.Kontent.Publishing
 {
     internal partial class LanguageSync : SyncBase
     {
+        private const int CULTURE_MAXLENGTH = 25;
+
         public LanguageSync(SyncSettings settings) : base(settings)
         {
         }
@@ -48,15 +50,20 @@ namespace Kentico.EMS.Kontent.Publishing
                 return new List<LanguageData>();
             }
 
-            var languages = response.Languages;
+            var languages = response.Languages.ToList();
 
-            if ((response.Pagination != null) && !string.IsNullOrEmpty(response.Pagination.ContinuationToken))
+            if (
+                (languages.Count > 0) &&
+                (response.Pagination != null) &&
+                !string.IsNullOrEmpty(response.Pagination.ContinuationToken) &&
+                (response.Pagination.ContinuationToken != continuationToken)
+            )
             {
                 var nextIds = await GetAllLanguages(response.Pagination.ContinuationToken);
-                languages = languages.Concat(nextIds);
+                languages = languages.Concat(nextIds).ToList();
             }
 
-            return languages.ToList();
+            return languages;
         }
 
         public async Task SyncCultures(CancellationToken? cancellation = null)
@@ -72,7 +79,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
                 var missingCultures = cultures.Where(
                     // Culture code name is case sensitive, it must be exact
-                    culture => !existingLanguages.Exists(language => language.Codename.Equals(culture.CultureCode))
+                    culture => !existingLanguages.Exists(language => language.Codename.Equals(culture.CultureCode.LimitedTo(CULTURE_MAXLENGTH)))
                 );
 
                 foreach (var culture in missingCultures)
@@ -98,8 +105,8 @@ namespace Kentico.EMS.Kontent.Publishing
 
                 var payload = new
                 {
-                    name = culture.CultureName,
-                    codename = culture.CultureCode.ToLower(),
+                    name = culture.CultureName.LimitedTo(CULTURE_MAXLENGTH),
+                    codename = culture.CultureCode.ToLower().LimitedTo(CULTURE_MAXLENGTH),
                     external_id = externalId,
                     is_active = true,
                     // Default language is always empty, and no fallback is used as a result
