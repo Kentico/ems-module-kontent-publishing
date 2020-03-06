@@ -46,10 +46,6 @@ OPTIONAL: In case you have more projects, e.g. an MVC site instance, add the sam
 
 Create a **new empty project** in [Kentico Kontent](https://app.kontent.ai).
 
-Navigate to **Project settings** then to **Localization** and define all the languages that your site in Kentico EMS uses.
-
-NOTE: The languages in Kentico Kontent must use the same code names (case sensitive) as Kentico EMS. You can find their code names in **Kentico EMS administration** when you navigate to **Localization** and then to **Cultures**.
-
 Add the following keys to the web.config (or app.config) of your project(s)
 
 ```

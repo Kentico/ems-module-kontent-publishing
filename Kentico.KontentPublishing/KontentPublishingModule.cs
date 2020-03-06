@@ -27,18 +27,20 @@ namespace Kentico.EMS.Kontent.Publishing
 
         private TreeProvider _tree = new TreeProvider();
 
+        private SyncSettings _settings;
+
         public KontentPublishingModule() : base(MODULE_NAME)
         {
-            var settings = new SyncSettings();
-            settings.LoadFromConfig();
+            _settings = new SyncSettings();
+            _settings.LoadFromConfig();
 
-            if (settings.IsValid())
+            if (_settings.IsValid())
             {
-                _assetSync = new AssetSync(settings);
-                _languageSync = new LanguageSync(settings);
-                _pageSync = new PageSync(settings, _assetSync);
-                _contentTypeSync = new ContentTypeSync(settings, _pageSync);
-                _taxonomySync = new TaxonomySync(settings);
+                _assetSync = new AssetSync(_settings);
+                _languageSync = new LanguageSync(_settings);
+                _pageSync = new PageSync(_settings, _assetSync);
+                _contentTypeSync = new ContentTypeSync(_settings, _pageSync);
+                _taxonomySync = new TaxonomySync(_settings);
             }
         }
         
@@ -97,9 +99,11 @@ namespace Kentico.EMS.Kontent.Publishing
                 MediaFileInfo.TYPEINFO.Events.Insert.After += MediaFileUpdated;
                 MediaFileInfo.TYPEINFO.Events.Update.After += MediaFileUpdated;
                 MediaFileInfo.TYPEINFO.Events.Delete.After += MediaFileDeleted;
+
+                MediaLibraryInfo.TYPEINFO.Events.Delete.Before += MediaLibraryDeleted;
             }
         }
-        
+
         private void RunSynchronization(Func<Task> action)
         {
             KontentSyncWorker.Current.Enqueue(
@@ -271,6 +275,15 @@ namespace Kentico.EMS.Kontent.Publishing
 
         #region "Media files"
 
+        private void MediaLibraryDeleted(object sender, ObjectEventArgs e)
+        {
+            var mediaLibrary = e.Object as MediaLibraryInfo;
+            if ((mediaLibrary != null) && _assetSync.IsAtSynchronizedSite(mediaLibrary))
+            {
+                RunSynchronization(async () => await _assetSync.DeleteAllMediaFiles(mediaLibrary));
+            }
+        }
+        
         private void MediaFileDeleted(object sender, ObjectEventArgs e)
         {
             var mediaFile = e.Object as MediaFileInfo;
@@ -358,21 +371,27 @@ namespace Kentico.EMS.Kontent.Publishing
         private void PageUpdating(object sender, DocumentEventArgs e)
         {
             var oldCanBePublished = false;
+            var wasAtSynchronizedSite = false;
             var node = e.Node;
+
             node.ExecuteWithOriginalData(() =>
             {
                 oldCanBePublished = _pageSync.CanBePublished(node);
+                wasAtSynchronizedSite = _pageSync.IsAtSynchronizedSite(node);
             });
 
-            var canBePublished = _pageSync.CanBePublished(node);
-
-            if (oldCanBePublished && !canBePublished)
+            if (wasAtSynchronizedSite)
             {
-                // Unpublished
-                e.CallWhenFinished(() =>
+                var canBePublished = _pageSync.CanBePublished(node);
+
+                if (oldCanBePublished && !canBePublished)
                 {
-                    RunSynchronization(async () => await _pageSync.DeletePage(null, node));
-                });
+                    // Unpublished
+                    e.CallWhenFinished(() =>
+                    {
+                        RunSynchronization(async () => await _pageSync.DeletePage(null, node));
+                    });
+                }
             }
         }
 
@@ -453,6 +472,11 @@ namespace Kentico.EMS.Kontent.Publishing
             await SyncAttachments(cancellation);
             await SyncLanguages(cancellation);
             await SyncPages(cancellation);
+        }
+
+        public bool isConfigurationValid()
+        {
+            return _settings.IsValid();
         }
 
         #endregion

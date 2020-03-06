@@ -10,18 +10,26 @@
     </asp:Panel>
 </asp:Content>
 <asp:Content ContentPlaceHolderID="plcContent" runat="server">
-    <asp:PlaceHolder runat="server" ID="plcTextBox">
+    <asp:PlaceHolder runat="server" ID="plcSync">
         <cms:LocalizedButton ID="btnSyncAll" runat="server" OnClick="btnSyncAll_Click" EnableViewState="false" Text="Synchronize all" ButtonStyle="Primary" />
         <cms:LocalizedButton runat="server" ID="btnDangerZone" OnClick="btnDangerZone_Click" Text="Show advanced actions" ButtonStyle="Default" />
-        <asp:PlaceHolder runat="server" ID="plcDangerZone" Visible="false">
+        <asp:Panel runat="server" ID="pnlDangerZone" Visible="false">
+            <br />
             <cms:LocalizedButton ID="btnSyncMediaLibraries" runat="server" OnClick="btnSyncMediaLibraries_Click" EnableViewState="false" Text="Synchronize media libraries" ButtonStyle="Default" />
+            <br /><br />
             <cms:LocalizedButton ID="btnSyncRelationships" runat="server" OnClick="btnSyncRelationships_Click" EnableViewState="false" Text="Synchronize relationships" ButtonStyle="Default" />
+            <br /><br />
             <cms:LocalizedButton ID="btnSyncCategories" runat="server" OnClick="btnSyncCategories_Click" EnableViewState="false" Text="Synchronize categories" ButtonStyle="Default" />
+            <br /><br />
             <cms:LocalizedButton ID="btnSyncContentTypes" runat="server" OnClick="btnSyncContentTypes_Click" EnableViewState="false" Text="Synchronize content types" ButtonStyle="Default" />
+            <br /><br />
             <cms:LocalizedButton ID="btnSyncAttachments" runat="server" OnClick="btnSyncAttachments_Click" EnableViewState="false" Text="Synchronize attachments" ButtonStyle="Default" />
+            <br /><br />
             <cms:LocalizedButton ID="btnSyncLanguages" runat="server" OnClick="btnSyncLanguages_Click" EnableViewState="false" Text="Synchronize cultures" ButtonStyle="Default" />
+            <br /><br />
             <cms:LocalizedButton ID="btnSyncPages" runat="server" OnClick="btnSyncPages_Click" EnableViewState="false" Text="Synchronize pages" ButtonStyle="Default" />
+            <br /><br />
             <cms:LocalizedButton ID="btnDeleteAll" runat="server" OnClick="btnDeleteAll_Click" EnableViewState="false" Text="Delete all data in Kentico Kontent" ButtonStyle="Default" OnClientClick="return confirm('This will delete all data in the target Kentico Cloud project, not only the data synchronized from this site. Are you sure you want to continue?')" />
-        </asp:PlaceHolder>
+        </asp:Panel>
     </asp:PlaceHolder>
 </asp:Content>

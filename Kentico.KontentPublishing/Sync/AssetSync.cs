@@ -15,7 +15,9 @@ using CMS.SiteProvider;
 namespace Kentico.EMS.Kontent.Publishing
 {
     internal partial class AssetSync : SyncBase
-    {        
+    {
+        private const int ASSET_TITLE_MAXLENGTH = 50;
+
         public AssetSync(SyncSettings settings) : base(settings)
         {
         }
@@ -65,15 +67,21 @@ namespace Kentico.EMS.Kontent.Publishing
             }
 
             var ids = response.Assets
-                .Select(asset => asset.Id);
+                .Select(asset => asset.Id)
+                .ToList();
 
-            if ((response.Pagination != null) && !string.IsNullOrEmpty(response.Pagination.ContinuationToken))
+            if (
+                (ids.Count > 0) &&
+                (response.Pagination != null) &&
+                !string.IsNullOrEmpty(response.Pagination.ContinuationToken) &&
+                (response.Pagination.ContinuationToken != continuationToken)
+            )
             {
                 var nextIds = await GetAllAssetIds(response.Pagination.ContinuationToken);
-                ids = ids.Concat(nextIds);
+                ids = ids.Concat(nextIds).ToList();
             }
 
-            return ids.ToList();
+            return ids;
         }
 
         public async Task DeleteAllAssets(CancellationToken? cancellation)
@@ -158,7 +166,7 @@ namespace Kentico.EMS.Kontent.Publishing
             return await ExecuteUploadWithResponse<FileReferenceData>(endpoint, data, mimeType);
         }
 
-        private async Task UpsertAsset(string externalId, string title, Guid fileReferenceId)
+        private async Task UpsertAsset(string externalId, string title, string description, Guid fileReferenceId)
         {
             var endpoint = $"/assets/external-id/{HttpUtility.UrlEncode(externalId)}";
 
@@ -170,7 +178,16 @@ namespace Kentico.EMS.Kontent.Publishing
                     type = "internal"
                 },
                 title,
-                descriptions = new object[0]
+                descriptions = new []
+                {
+                    new
+                    {
+                        language = new {
+                            id = Guid.Empty.ToString(),
+                        },
+                        description,
+                    }
+                }
             };
 
             await ExecuteWithoutResponse(endpoint, HttpMethod.Put, payload);
@@ -295,7 +312,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
             try
             {
-                var fileName = mediaFile.FileName + mediaFile.FileExtension;
+                var fileName = mediaFile.FileName.LimitedTo(ASSET_TITLE_MAXLENGTH - mediaFile.FileExtension.Length) + mediaFile.FileExtension;
 
                 SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "SYNCMEDIAFILE", fileName);
 
@@ -314,12 +331,12 @@ namespace Kentico.EMS.Kontent.Publishing
                     var data = File.ReadAllBytes(filePath);
                     var fileReference = await UploadBinaryFile(data, mediaFile.FileMimeType, fileName);
 
-                    await UpsertAsset(externalId, fileName, fileReference.Id);
+                    await UpsertAsset(externalId, fileName, mediaFile.FileDescription, fileReference.Id);
                 }
                 else
                 {
                     // Update metadata of existing
-                    await UpsertAsset(externalId, fileName, existing.FileReference.Id);
+                    await UpsertAsset(externalId, fileName, mediaFile.FileDescription, existing.FileReference.Id);
                 }
             }
             catch (Exception ex)
@@ -482,12 +499,12 @@ namespace Kentico.EMS.Kontent.Publishing
                     var data = AttachmentBinaryHelper.GetAttachmentBinary((DocumentAttachment)attachment);
                     var fileReference = await UploadBinaryFile(data, attachment.AttachmentMimeType, attachment.AttachmentName);
 
-                    await UpsertAsset(externalId, attachment.AttachmentName, fileReference.Id);
+                    await UpsertAsset(externalId, attachment.AttachmentName, attachment.AttachmentDescription, fileReference.Id);
                 }
                 else
                 {
                     // Update metadata of existing
-                    await UpsertAsset(externalId, attachment.AttachmentName, existing.FileReference.Id);
+                    await UpsertAsset(externalId, attachment.AttachmentName, attachment.AttachmentDescription, existing.FileReference.Id);
                 }
             }
             catch (Exception ex)

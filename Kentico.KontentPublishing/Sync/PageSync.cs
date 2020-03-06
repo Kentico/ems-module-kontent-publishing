@@ -20,6 +20,8 @@ namespace Kentico.EMS.Kontent.Publishing
 {
     internal class PageSync : SyncBase
     {
+        private const int ITEM_NAME_MAXLENGTH = 50;
+
         private AssetSync _assetSync;
 
         public PageSync(SyncSettings settings, AssetSync assetSync) : base(settings)
@@ -36,7 +38,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
         public bool CanBePublished(TreeNode node)
         {
-            return DocumentHelper.GetPublished(new NodeWithoutPublishFrom(node));
+            return IsAtSynchronizedSite(node) && DocumentHelper.GetPublished(new NodeWithoutPublishFrom(node));
         }
 
         public static string GetPageExternalId(Guid nodeGuid)
@@ -198,14 +200,10 @@ namespace Kentico.EMS.Kontent.Publishing
                 throw new InvalidOperationException($"Form info for {node.NodeClassName} not found.");
             }
 
-            var name = node.NodeName;
-            if (name.Length > 50)
-            {
-                name = name.Substring(0, 50);
-            }
+            var name = node.NodeName.LimitedTo(ITEM_NAME_MAXLENGTH);
             if (string.IsNullOrEmpty(name))
             {
-                name = ObjectHelper.GetObjectFriendlyName(node.NodeClassName);
+                name = ObjectHelper.GetObjectFriendlyName(node.NodeClassName).LimitedTo(ITEM_NAME_MAXLENGTH);
             }
 
             var payload = new
@@ -530,7 +528,7 @@ namespace Kentico.EMS.Kontent.Publishing
         }
 
         private static Regex UrlAttributeRegEx = new Regex("(?<start>\\b(href|src)=\")(?<url>[^\"?]+)(?<query>\\?[^\"]+)?(?<end>\")");
-                
+
         private async Task<string> ReplaceMediaLink(Match match)
         {
             var start = Convert.ToString(match.Groups["start"]);
@@ -538,37 +536,44 @@ namespace Kentico.EMS.Kontent.Publishing
             var query = HttpUtility.HtmlDecode(Convert.ToString(match.Groups["query"]));
             var end = Convert.ToString(match.Groups["end"]);
 
-            var data = CMSDialogHelper.GetMediaData(url, Settings.Sitename);
-            if (data != null)
+            try
             {
-                switch (data.SourceType)
+                // We need to set current site before every call to GetMediaData to avoid null reference
+                SiteContext.CurrentSiteName = Settings.Sitename;
+                var data = CMSDialogHelper.GetMediaData(url, Settings.Sitename);
+                if (data != null)
                 {
-                    case MediaSourceEnum.Attachment:
-                    case MediaSourceEnum.DocumentAttachments:
-                        {
-                            var assetUrl = await _assetSync.GetAssetUrl("attachment", data.AttachmentGuid, data.FileName);
-                            var newQuery = TranslateMediaQuery(query);
+                    switch (data.SourceType)
+                    {
+                        case MediaSourceEnum.Attachment:
+                        case MediaSourceEnum.DocumentAttachments:
+                            {
+                                var assetUrl = await _assetSync.GetAssetUrl("attachment", data.AttachmentGuid, data.FileName);
+                                var newQuery = TranslateMediaQuery(query);
 
-                            return $"{start}{HttpUtility.HtmlEncode(assetUrl)}{HttpUtility.HtmlEncode(newQuery)}{end}";
-                        }
+                                return $"{start}{HttpUtility.HtmlEncode(assetUrl)}{HttpUtility.HtmlEncode(newQuery)}{end}";
+                            }
 
-                    case MediaSourceEnum.MediaLibraries:
-                        {
-                            var assetUrl = await _assetSync.GetAssetUrl("media", data.MediaFileGuid, data.FileName);
-                            var newQuery = TranslateMediaQuery(query);
+                        case MediaSourceEnum.MediaLibraries:
+                            {
+                                var assetUrl = await _assetSync.GetAssetUrl("media", data.MediaFileGuid, data.FileName);
+                                var newQuery = TranslateMediaQuery(query);
 
-                            return $"{start}{HttpUtility.HtmlEncode(assetUrl)}{HttpUtility.HtmlEncode(newQuery)}{end}";
-                        }
+                                return $"{start}{HttpUtility.HtmlEncode(assetUrl)}{HttpUtility.HtmlEncode(newQuery)}{end}";
+                            }
+                    }
                 }
             }
-
-            if (url.StartsWith("~"))
+            catch (Exception ex)
             {
-                // Resolve other unknown URLs
-                return $"{start}{HttpUtility.HtmlEncode(Settings.WebRoot)}{HttpUtility.HtmlEncode(url.Substring(1))}{HttpUtility.HtmlEncode(query)}{end}";
+                SyncLog.LogException("KenticoKontentPublishing", "TRANSLATEURL", ex, 0, $"Failed to replace media URL '{url + query}', keeping the original URL.");
             }
 
-            // Keep as it is
+            // Keep as it is if translation is not successful, only resolve to absolute URL if needed
+            if (url.StartsWith("~"))
+            {
+                return $"{start}{HttpUtility.HtmlEncode(Settings.WebRoot)}{HttpUtility.HtmlEncode(url.Substring(1))}{HttpUtility.HtmlEncode(query)}{end}";
+            }
             return match.ToString();
         }
 
@@ -756,16 +761,20 @@ namespace Kentico.EMS.Kontent.Publishing
                 response.Items.Where(item => item.Type.Id == contentTypeId.Value) :
                 response.Items;
 
-            var ids = items
-                .Select(item => item.Id);
+            var ids = items.Select(item => item.Id).ToList();
 
-            if ((response.Pagination != null) && !string.IsNullOrEmpty(response.Pagination.ContinuationToken))
+            if (
+                (ids.Count > 0) &&
+                (response.Pagination != null) &&
+                !string.IsNullOrEmpty(response.Pagination.ContinuationToken) &&
+                (response.Pagination.ContinuationToken != continuationToken)
+            )
             {
                 var nextIds = await GetAllItemIds(contentTypeId, response.Pagination.ContinuationToken);
-                ids = ids.Concat(nextIds);
+                ids = ids.Concat(nextIds).ToList();
             }
 
-            return ids.ToList();
+            return ids;
         }
     }
 }

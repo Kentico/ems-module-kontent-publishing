@@ -18,20 +18,21 @@ namespace Kentico.EMS.Kontent.Publishing
 {
     internal partial class ContentTypeSync : SyncBase
     {
-        private static HttpMethod PATCH = new HttpMethod("PATCH");
-
         private PageSync _pageSync;
 
         public static readonly string[] UsedRelationshipNameColumns = new[]
         {
+            "RelationshipDisplayName",
             "RelationshipName",
         };
 
         public static readonly string[] UsedPageTypeColumns = new[]
         {
+            "ClassDisplayName",
+            "ClassName",
             "ClassFormDefinition",
-            "ClassDisplayName"
         };
+        private readonly int ELEMENT_MAXLENGTH;
 
         public ContentTypeSync(SyncSettings settings, PageSync pageSync) : base(settings)
         {
@@ -149,8 +150,8 @@ namespace Kentico.EMS.Kontent.Publishing
             var elements = relationshipNames.Select(relationshipName => new
             {
                 external_id = GetFieldExternalId(RELATED_PAGES_GUID, relationshipName.RelationshipGUID),
-                name = relationshipName.RelationshipDisplayName,
-                codename = relationshipName.RelationshipName.ToLower(),
+                name = relationshipName.RelationshipDisplayName.LimitedTo(ELEMENT_MAXLENGTH),
+                codename = relationshipName.RelationshipName.ToLower().LimitedTo(ELEMENT_MAXLENGTH),
                 type = "modular_content",
             }).ToList();
 
@@ -203,8 +204,10 @@ namespace Kentico.EMS.Kontent.Publishing
                     value = element
                 });
                 var payload = removeAllExisting.AsEnumerable<object>().Concat(addAllCurrent).ToList();
-
-                await ExecuteWithoutResponse(endpoint, PATCH, payload);
+                if (payload.Count > 0)
+                {
+                    await ExecuteWithoutResponse(endpoint, PATCH, payload);
+                }
             }
             catch (Exception ex)
             {
@@ -476,8 +479,8 @@ namespace Kentico.EMS.Kontent.Publishing
                     var element = new
                     {
                         external_id = GetFieldExternalId(contentType.ClassGUID, field.Guid),
-                        name = GetElementName(field),
-                        codename = field.Name.ToLower(),
+                        name = GetElementName(field).LimitedTo(ELEMENT_MAXLENGTH),
+                        codename = field.Name.ToLower().LimitedTo(ELEMENT_MAXLENGTH),
                         guidelines = GetElementGuidelines(field),
                         is_required = !field.AllowEmpty,
                         type = GetElementType(field.DataType),
@@ -600,7 +603,8 @@ namespace Kentico.EMS.Kontent.Publishing
 
                 var payload = new
                 {
-                    name = contentType.ClassDisplayName,
+                    name = contentType.ClassDisplayName.LimitedTo(ELEMENT_MAXLENGTH),
+                    code_name = contentType.ClassName.LimitedTo(ELEMENT_MAXLENGTH),
                     external_id = GetPageTypeExternalId(contentType.ClassGUID),
                     content_groups = GetContentTypeGroups(contentType),
                     elements = GetContentTypeElements(contentType),
@@ -655,7 +659,10 @@ namespace Kentico.EMS.Kontent.Publishing
                     .Concat(addAllCurrentElements)
                     .ToList();
 
-                await ExecuteWithoutResponse(endpoint, PATCH, payload);
+                if (payload.Count > 0)
+                {
+                    await ExecuteWithoutResponse(endpoint, PATCH, payload);
+                }
             }
             catch (Exception ex)
             {
@@ -680,15 +687,21 @@ namespace Kentico.EMS.Kontent.Publishing
             }
 
             var ids = response.Types
-                .Select(item => item.Id);
+                .Select(item => item.Id)
+                .ToList();
 
-            if ((response.Pagination != null) && !string.IsNullOrEmpty(response.Pagination.ContinuationToken))
+            if (
+                (ids.Count > 0) &&
+                (response.Pagination != null) &&
+                !string.IsNullOrEmpty(response.Pagination.ContinuationToken) &&
+                (response.Pagination.ContinuationToken != continuationToken)
+            )
             {
                 var nextIds = await GetAllContentTypeIds(response.Pagination.ContinuationToken);
-                ids = ids.Concat(nextIds);
+                ids = ids.Concat(nextIds).ToList();
             }
 
-            return ids.ToList();
+            return ids;
         }
 
         public async Task DeleteAllContentTypes(CancellationToken? cancellation)
@@ -737,15 +750,20 @@ namespace Kentico.EMS.Kontent.Publishing
             }
 
             var ids = response.Snippets
-                .Select(item => item.Id);
+                .Select(item => item.Id).ToList();
 
-            if ((response.Pagination != null) && !string.IsNullOrEmpty(response.Pagination.ContinuationToken))
+            if (
+                (ids.Count > 0) &&
+                (response.Pagination != null) &&
+                !string.IsNullOrEmpty(response.Pagination.ContinuationToken) &&
+                (response.Pagination.ContinuationToken != continuationToken)
+            )
             {
                 var nextIds = await GetAllContentTypeSnippetIds(response.Pagination.ContinuationToken);
-                ids = ids.Concat(nextIds);
+                ids = ids.Concat(nextIds).ToList();
             }
 
-            return ids.ToList();
+            return ids;
         }
 
         public async Task DeleteAllContentTypeSnippets(CancellationToken? cancellation)

@@ -5,6 +5,7 @@ namespace Kentico.EMS.Kontent.Publishing
 {
     public class SyncLog
     {
+        public static Exception lastLoggedException;
         public static LogContext CurrentLog;
         
         public static void Log(string text, bool newLine = true)
@@ -23,7 +24,13 @@ namespace Kentico.EMS.Kontent.Publishing
 
         public static void LogException(string source, string eventCode, Exception ex, int siteId = 0, string additionalMessage = null)
         {
+            // Do not log the same exception twice
+            if (ex == lastLoggedException)
+            {
+                return;
+            }
             EventLogProvider.LogException(source, eventCode, ex, siteId, additionalMessage);
+            lastLoggedException = ex;
         }
     }
 }

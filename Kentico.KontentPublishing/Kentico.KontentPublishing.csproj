@@ -603,6 +603,7 @@
     <Compile Include="Helpers\RegExExtensions.cs" />
     <Compile Include="Sync\Purge.cs" />
     <Compile Include="Models\General\ExternalIdReference.cs" />
+    <Compile Include="Sync\StringExtensions.cs" />
     <Compile Include="Sync\SyncBase.cs" />
     <Compile Include="Sync\SyncSettings.cs" />
     <Compile Include="Models\General\IdReference.cs" />
