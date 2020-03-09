@@ -67,6 +67,15 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync
     protected global::System.Web.UI.WebControls.Panel pnlDangerZone;
 
     /// <summary>
+    /// btnSyncMediaFolders control.
+    /// </summary>
+    /// <remarks>
+    /// Auto-generated field.
+    /// To modify move field declaration from designer file to code-behind file.
+    /// </remarks>
+    protected global::CMS.Base.Web.UI.LocalizedButton btnSyncMediaFolders;
+
+    /// <summary>
     /// btnSyncMediaLibraries control.
     /// </summary>
     /// <remarks>

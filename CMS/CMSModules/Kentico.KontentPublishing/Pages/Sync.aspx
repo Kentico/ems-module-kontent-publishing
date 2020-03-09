@@ -15,6 +15,8 @@
         <cms:LocalizedButton runat="server" ID="btnDangerZone" OnClick="btnDangerZone_Click" Text="Show advanced actions" ButtonStyle="Default" />
         <asp:Panel runat="server" ID="pnlDangerZone" Visible="false">
             <br />
+            <cms:LocalizedButton ID="btnSyncMediaFolders" runat="server" OnClick="btnSyncMediaFolders_Click" EnableViewState="false" Text="Synchronize media folders" ButtonStyle="Default" />
+            <br /><br />
             <cms:LocalizedButton ID="btnSyncMediaLibraries" runat="server" OnClick="btnSyncMediaLibraries_Click" EnableViewState="false" Text="Synchronize media libraries" ButtonStyle="Default" />
             <br /><br />
             <cms:LocalizedButton ID="btnSyncRelationships" runat="server" OnClick="btnSyncRelationships_Click" EnableViewState="false" Text="Synchronize relationships" ButtonStyle="Default" />

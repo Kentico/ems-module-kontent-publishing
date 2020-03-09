@@ -166,7 +166,7 @@ namespace Kentico.EMS.Kontent.Publishing
             return await ExecuteUploadWithResponse<FileReferenceData>(endpoint, data, mimeType);
         }
 
-        private async Task UpsertAsset(string externalId, string title, string description, Guid fileReferenceId)
+        private async Task UpsertAsset(string externalId, string title, string description, Guid fileReferenceId, string folderExternalId)
         {
             var endpoint = $"/assets/external-id/{HttpUtility.UrlEncode(externalId)}";
 
@@ -177,6 +177,9 @@ namespace Kentico.EMS.Kontent.Publishing
                     id = fileReferenceId,
                     type = "internal"
                 },
+                folder = !string.IsNullOrEmpty(folderExternalId) ?
+                    new ExternalIdReference { external_id = folderExternalId } :
+                    null,
                 title,
                 descriptions = new []
                 {
@@ -318,6 +321,12 @@ namespace Kentico.EMS.Kontent.Publishing
 
                 var externalId = GetMediaFileExternalId(mediaFile.FileGUID);
 
+                var folderPath = "/" + Path.GetDirectoryName(mediaFile.FilePath);
+                var mediaLibrary = MediaLibraryInfoProvider.GetMediaLibraryInfo(mediaFile.FileLibraryID);
+                var folderExternalId = (mediaLibrary != null) ?
+                    AssetFolderSync.GetMediaFolderExternalId(mediaLibrary.LibraryGUID, folderPath) :
+                    null;
+
                 var existing = await GetAsset(externalId);
 
                 // TODO - Consider detection by something more sophisticated than file size, but be careful, last modified may be off due to metadata changes
@@ -331,12 +340,12 @@ namespace Kentico.EMS.Kontent.Publishing
                     var data = File.ReadAllBytes(filePath);
                     var fileReference = await UploadBinaryFile(data, mediaFile.FileMimeType, fileName);
 
-                    await UpsertAsset(externalId, fileName, mediaFile.FileDescription, fileReference.Id);
+                    await UpsertAsset(externalId, fileName, mediaFile.FileDescription, fileReference.Id, folderExternalId);
                 }
                 else
                 {
                     // Update metadata of existing
-                    await UpsertAsset(externalId, fileName, mediaFile.FileDescription, existing.FileReference.Id);
+                    await UpsertAsset(externalId, fileName, mediaFile.FileDescription, existing.FileReference.Id, folderExternalId);
                 }
             }
             catch (Exception ex)
@@ -488,6 +497,7 @@ namespace Kentico.EMS.Kontent.Publishing
                 SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "SYNCATTACHMENT", attachment.AttachmentName);
 
                 var externalId = GetAttachmentExternalId(attachment.AttachmentGUID);
+                var folderExternalId = AssetFolderSync.GetAttachmentsFolderExternalId();
 
                 var existing = await GetAsset(externalId);
 
@@ -499,12 +509,12 @@ namespace Kentico.EMS.Kontent.Publishing
                     var data = AttachmentBinaryHelper.GetAttachmentBinary((DocumentAttachment)attachment);
                     var fileReference = await UploadBinaryFile(data, attachment.AttachmentMimeType, attachment.AttachmentName);
 
-                    await UpsertAsset(externalId, attachment.AttachmentName, attachment.AttachmentDescription, fileReference.Id);
+                    await UpsertAsset(externalId, attachment.AttachmentName, attachment.AttachmentDescription, fileReference.Id, folderExternalId);
                 }
                 else
                 {
                     // Update metadata of existing
-                    await UpsertAsset(externalId, attachment.AttachmentName, attachment.AttachmentDescription, existing.FileReference.Id);
+                    await UpsertAsset(externalId, attachment.AttachmentName, attachment.AttachmentDescription, existing.FileReference.Id, folderExternalId);
                 }
             }
             catch (Exception ex)

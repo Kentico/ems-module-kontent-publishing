@@ -581,6 +581,8 @@
     <Compile Include="Models\ContentTypes\SnippetData.cs" />
     <Compile Include="Models\ContentTypes\SnippetsResponse.cs" />
     <Compile Include="Models\Assets\FileReferenceData.cs" />
+    <Compile Include="Models\Folders\FolderData.cs" />
+    <Compile Include="Models\Folders\FoldersResponse.cs" />
     <Compile Include="Models\Items\ItemData.cs" />
     <Compile Include="Models\General\PaginationData.cs" />
     <Compile Include="Models\Assets\AssetData.cs" />
@@ -608,6 +610,7 @@
     <Compile Include="Sync\SyncSettings.cs" />
     <Compile Include="Models\General\IdReference.cs" />
     <Compile Include="Sync\LanguageSync.cs" />
+    <Compile Include="Sync\AssetFolderSync.cs" />
     <Compile Include="Sync\TaxonomySync.cs" />
   </ItemGroup>
   <ItemGroup>

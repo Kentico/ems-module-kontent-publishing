@@ -144,6 +144,11 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync : GlobalAdm
         await GetModule()?.SyncCategories(cancellation);
     }
 
+    private async Task SyncMediaFolders(CancellationToken cancellation)
+    {
+        await GetModule()?.SyncMediaFolders();
+    }
+
     private async Task SyncMediaLibraries(CancellationToken cancellation)
     {
         await GetModule()?.SyncMediaLibraries(cancellation);
@@ -182,6 +187,11 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync : GlobalAdm
     protected void btnSyncAll_Click(object sender, EventArgs e)
     {
         RunSync(SyncAll);
+    }
+
+    protected void btnSyncMediaFolders_Click(object sender, EventArgs e)
+    {
+        RunSync(SyncMediaFolders);
     }
 
     protected void btnSyncMediaLibraries_Click(object sender, EventArgs e)

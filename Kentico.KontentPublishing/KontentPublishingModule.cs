@@ -22,6 +22,7 @@ namespace Kentico.EMS.Kontent.Publishing
         private ContentTypeSync _contentTypeSync;
         private PageSync _pageSync;
         private AssetSync _assetSync;
+        private AssetFolderSync _assetFolderSync;
         private TaxonomySync _taxonomySync;
         private LanguageSync _languageSync;
 
@@ -37,6 +38,7 @@ namespace Kentico.EMS.Kontent.Publishing
             if (_settings.IsValid())
             {
                 _assetSync = new AssetSync(_settings);
+                _assetFolderSync = new AssetFolderSync(_settings);
                 _languageSync = new LanguageSync(_settings);
                 _pageSync = new PageSync(_settings, _assetSync);
                 _contentTypeSync = new ContentTypeSync(_settings, _pageSync);
@@ -419,6 +421,11 @@ namespace Kentico.EMS.Kontent.Publishing
 
         #region "Public methods"
 
+        public async Task SyncMediaFolders()
+        {
+            await _assetFolderSync.SyncAllFolders();
+        }
+
         public async Task SyncMediaLibraries(CancellationToken? cancellation)
         {
             await _assetSync.SyncAllMediaLibraries(cancellation);
@@ -461,10 +468,12 @@ namespace Kentico.EMS.Kontent.Publishing
             await _contentTypeSync.DeleteAllContentTypeSnippets(cancellation);
             await _taxonomySync.DeleteAllTaxonomies(cancellation);
             await _assetSync.DeleteAllAssets(cancellation);
+            await _assetFolderSync.DeleteAllFolders();
         }
 
         public async Task SyncAll(CancellationToken? cancellation)
         {
+            await SyncMediaFolders();
             await SyncMediaLibraries(cancellation);
             await SyncRelationships(cancellation);
             await SyncCategories(cancellation);
