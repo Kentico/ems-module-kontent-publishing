@@ -58,7 +58,7 @@ namespace Kentico.EMS.Kontent.Publishing
         {
             try
             {
-                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "UNPUBLISHPAGE", node.NodeAliasPath);
+                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "UNPUBLISHPAGE", $"{node.NodeAliasPath} - {node.DocumentCulture} ({node.NodeGUID})");
 
                 if (node == null)
                 {
@@ -83,7 +83,7 @@ namespace Kentico.EMS.Kontent.Publishing
             }
             catch (Exception ex)
             {
-                SyncLog.LogException("KenticoKontentPublishing", "UNPUBLISHPAGE", ex, 0, node.NodeAliasPath);
+                SyncLog.LogException("KenticoKontentPublishing", "UNPUBLISHPAGE", ex, 0, $"{node.NodeAliasPath} - {node.DocumentCulture} ({node.NodeGUID})");
                 throw;
             }
         }
@@ -111,7 +111,7 @@ namespace Kentico.EMS.Kontent.Publishing
             }
         }
 
-        public async Task DeletePage(CancellationToken? cancellation, TreeNode node, bool deleteAttachments = true)
+        public async Task DeletePage(CancellationToken? cancellation, TreeNode node)
         {
             if (node == null)
             {
@@ -120,23 +120,18 @@ namespace Kentico.EMS.Kontent.Publishing
 
             try
             {
-                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "DELETEPAGE", node.NodeAliasPath);
+                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "DELETEPAGE", $"{node.NodeAliasPath} - {node.DocumentCulture} ({node.NodeGUID})");
 
                 var variantDeleted = await DeleteVariant(node);
-
-                if (variantDeleted && deleteAttachments)
-                {
-                    await _assetSync.DeleteAllAttachments(cancellation, node);
-                }
             }
             catch (Exception ex)
             {
-                SyncLog.LogException("KenticoKontentPublishing", "DELETEPAGE", ex, 0, node.NodeAliasPath);
+                SyncLog.LogException("KenticoKontentPublishing", "DELETEPAGE", ex, 0, $"{node.NodeAliasPath} - {node.DocumentCulture} ({node.NodeGUID})");
                 throw;
             }
         }
 
-        public async Task SyncAllPages(CancellationToken? cancellation, DataClassInfo contentType = null)
+        public async Task SyncAllPages(CancellationToken? cancellation, DataClassInfo contentType = null, string path = null)
         {
             if (contentType == null)
             {
@@ -151,9 +146,12 @@ namespace Kentico.EMS.Kontent.Publishing
 
                 var documents = new DocumentQuery(contentType.ClassName)
                     .OnSite(Settings.Sitename)
-                    .PublishedVersion()
-                    // Exclude root
-                    .WhereNotNull("NodeParentID");
+                    .AllCultures()
+                    .PublishedVersion();
+
+                var documentsOnPath = String.IsNullOrEmpty(path) ?
+                    documents :
+                    documents.Path(path, PathTypeEnum.Section);
 
                 var index = 0;
 
@@ -166,7 +164,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
                     index++;
 
-                    SyncLog.Log($"Synchronizing page {node.NodeAliasPath} ({index}/{documents.Count})");
+                    SyncLog.Log($"Synchronizing page { node.NodeAliasPath} - { node.DocumentCulture} ({ node.NodeGUID}) - {index}/{documents.Count}");
 
                     await SyncPage(cancellation, node);
                 }
@@ -203,7 +201,7 @@ namespace Kentico.EMS.Kontent.Publishing
             var name = node.NodeName.LimitedTo(ITEM_NAME_MAXLENGTH);
             if (string.IsNullOrEmpty(name))
             {
-                name = ObjectHelper.GetObjectFriendlyName(node.NodeClassName).LimitedTo(ITEM_NAME_MAXLENGTH);
+                name = node.NodeAliasPath.LimitedTo(ITEM_NAME_MAXLENGTH);
             }
 
             var payload = new
@@ -403,14 +401,14 @@ namespace Kentico.EMS.Kontent.Publishing
 
             if (!CanBePublished(node))
             {
-                // Not published pages should be deleted in KC
+                // Not published pages should be deleted in KC, but we never delete their attachments, attachments always reflect state in the CMS_Attachment table
                 await DeletePage(cancellation, node);
                 return;
             }
 
             try
             {
-                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "SYNCPAGE", node.NodeAliasPath);
+                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "SYNCPAGE", $"{node.NodeAliasPath} ({node.DocumentCulture}) {node.NodeGUID}");
 
                 await UpsertItem(node);
 
@@ -422,7 +420,7 @@ namespace Kentico.EMS.Kontent.Publishing
             }
             catch (Exception ex)
             {
-                SyncLog.LogException("KenticoKontentPublishing", "SYNCPAGE", ex, 0, node.NodeAliasPath);
+                SyncLog.LogException("KenticoKontentPublishing", "SYNCPAGE", ex, 0, $"{node.NodeAliasPath} - {node.DocumentCulture} ({node.NodeGUID})");
                 throw;
             }
         }

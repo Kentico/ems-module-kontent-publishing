@@ -169,6 +169,26 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync : GlobalAdm
         await GetModule()?.SyncLanguages(cancellation);
     }
 
+    private async Task DeleteItems(CancellationToken cancellation)
+    {
+        await GetModule()?.DeleteItems(cancellation);
+    }
+
+    private async Task DeleteContentTypes(CancellationToken cancellation)
+    {
+        await GetModule()?.DeleteContentTypes(cancellation);
+    }
+
+    private async Task DeleteSnippets(CancellationToken cancellation)
+    {
+        await GetModule()?.DeleteContentTypeSnippets(cancellation);
+    }
+
+    private async Task DeleteAssets(CancellationToken cancellation)
+    {
+        await GetModule()?.DeleteAssets(cancellation);
+    }
+
     private async Task DeleteAll(CancellationToken cancellation)
     {
         await GetModule()?.DeleteAll(cancellation);
@@ -217,6 +237,26 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync : GlobalAdm
     protected void btnSyncCategories_Click(object sender, EventArgs e)
     {
         RunSync(SyncCategories);
+    }
+    
+    protected void btnDeleteItems_Click(object sender, EventArgs e)
+    {
+        RunSync(DeleteItems);
+    }
+
+    protected void btnDeleteContentTypes_Click(object sender, EventArgs e)
+    {
+        RunSync(DeleteContentTypes);
+    }
+
+    protected void btnDeleteSnippets_Click(object sender, EventArgs e)
+    {
+        RunSync(DeleteSnippets);
+    }
+
+    protected void btnDeleteAssets_Click(object sender, EventArgs e)
+    {
+        RunSync(DeleteAssets);
     }
 
     protected void btnDeleteAll_Click(object sender, EventArgs e)

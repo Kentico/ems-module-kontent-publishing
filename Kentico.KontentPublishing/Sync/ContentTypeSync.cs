@@ -18,6 +18,8 @@ namespace Kentico.EMS.Kontent.Publishing
 {
     internal partial class ContentTypeSync : SyncBase
     {
+        private readonly int ELEMENT_MAXLENGTH = 50;
+
         private PageSync _pageSync;
 
         public static readonly string[] UsedRelationshipNameColumns = new[]
@@ -32,7 +34,6 @@ namespace Kentico.EMS.Kontent.Publishing
             "ClassName",
             "ClassFormDefinition",
         };
-        private readonly int ELEMENT_MAXLENGTH;
 
         public ContentTypeSync(SyncSettings settings, PageSync pageSync) : base(settings)
         {
@@ -331,8 +332,7 @@ namespace Kentico.EMS.Kontent.Publishing
                 .WhereIn(
                     "ClassID",
                     ClassSiteInfoProvider.GetClassSites().OnSite(Settings.Sitename).Column("ClassID")
-                )
-                .WhereNotEquals("ClassName", "CMS.Root");
+                );
 
             var index = 0;
 
@@ -482,7 +482,10 @@ namespace Kentico.EMS.Kontent.Publishing
                         name = GetElementName(field).LimitedTo(ELEMENT_MAXLENGTH),
                         codename = field.Name.ToLower().LimitedTo(ELEMENT_MAXLENGTH),
                         guidelines = GetElementGuidelines(field),
-                        is_required = !field.AllowEmpty,
+                        is_required =
+                            !field.AllowEmpty &&
+                            // Exception - Allow empty value for root document name
+                            ((field.Name.ToLowerInvariant() != "documentname") || (contentType.ClassName.ToLowerInvariant() != "cms.root")),
                         type = GetElementType(field.DataType),
                         options = (field.DataType == FieldDataType.Binary)
                             ? new[] {
