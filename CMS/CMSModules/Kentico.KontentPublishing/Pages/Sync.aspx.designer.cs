@@ -67,6 +67,15 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync
     protected global::System.Web.UI.WebControls.Panel pnlDangerZone;
 
     /// <summary>
+    /// btnDeleteAll control.
+    /// </summary>
+    /// <remarks>
+    /// Auto-generated field.
+    /// To modify move field declaration from designer file to code-behind file.
+    /// </remarks>
+    protected global::CMS.Base.Web.UI.LocalizedButton btnDeleteAll;
+
+    /// <summary>
     /// btnSyncMediaLibraries control.
     /// </summary>
     /// <remarks>
@@ -130,11 +139,38 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync
     protected global::CMS.Base.Web.UI.LocalizedButton btnSyncPages;
 
     /// <summary>
-    /// btnDeleteAll control.
+    /// btnDeleteItems control.
     /// </summary>
     /// <remarks>
     /// Auto-generated field.
     /// To modify move field declaration from designer file to code-behind file.
     /// </remarks>
-    protected global::CMS.Base.Web.UI.LocalizedButton btnDeleteAll;
+    protected global::CMS.Base.Web.UI.LocalizedButton btnDeleteItems;
+
+    /// <summary>
+    /// btnDeleteContentTypes control.
+    /// </summary>
+    /// <remarks>
+    /// Auto-generated field.
+    /// To modify move field declaration from designer file to code-behind file.
+    /// </remarks>
+    protected global::CMS.Base.Web.UI.LocalizedButton btnDeleteContentTypes;
+
+    /// <summary>
+    /// btnDeleteSnippets control.
+    /// </summary>
+    /// <remarks>
+    /// Auto-generated field.
+    /// To modify move field declaration from designer file to code-behind file.
+    /// </remarks>
+    protected global::CMS.Base.Web.UI.LocalizedButton btnDeleteSnippets;
+
+    /// <summary>
+    /// btnDeleteAssets control.
+    /// </summary>
+    /// <remarks>
+    /// Auto-generated field.
+    /// To modify move field declaration from designer file to code-behind file.
+    /// </remarks>
+    protected global::CMS.Base.Web.UI.LocalizedButton btnDeleteAssets;
 }

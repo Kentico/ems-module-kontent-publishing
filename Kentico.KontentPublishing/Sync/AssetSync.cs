@@ -177,7 +177,8 @@ namespace Kentico.EMS.Kontent.Publishing
                     id = fileReferenceId,
                     type = "internal"
                 },
-                title,
+                title = title.LimitedTo(ASSET_TITLE_MAXLENGTH),
+                folder = new { id = Guid.Empty },
                 descriptions = new []
                 {
                     new
@@ -319,6 +320,7 @@ namespace Kentico.EMS.Kontent.Publishing
                 var externalId = GetMediaFileExternalId(mediaFile.FileGUID);
 
                 var existing = await GetAsset(externalId);
+                var title = string.IsNullOrEmpty(mediaFile.FileTitle) ? fileName : mediaFile.FileTitle;
 
                 // TODO - Consider detection by something more sophisticated than file size, but be careful, last modified may be off due to metadata changes
                 if ((existing == null) || (mediaFile.FileSize != existing.Size))
@@ -331,12 +333,12 @@ namespace Kentico.EMS.Kontent.Publishing
                     var data = File.ReadAllBytes(filePath);
                     var fileReference = await UploadBinaryFile(data, mediaFile.FileMimeType, fileName);
 
-                    await UpsertAsset(externalId, fileName, mediaFile.FileDescription, fileReference.Id);
+                    await UpsertAsset(externalId, title, mediaFile.FileDescription, fileReference.Id);
                 }
                 else
                 {
                     // Update metadata of existing
-                    await UpsertAsset(externalId, fileName, mediaFile.FileDescription, existing.FileReference.Id);
+                    await UpsertAsset(externalId, title, mediaFile.FileDescription, existing.FileReference.Id);
                 }
             }
             catch (Exception ex)
@@ -488,6 +490,7 @@ namespace Kentico.EMS.Kontent.Publishing
                 SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "SYNCATTACHMENT", attachment.AttachmentName);
 
                 var externalId = GetAttachmentExternalId(attachment.AttachmentGUID);
+                var title = string.IsNullOrEmpty(attachment.AttachmentTitle) ? attachment.AttachmentName : attachment.AttachmentTitle;
 
                 var existing = await GetAsset(externalId);
 
@@ -499,12 +502,12 @@ namespace Kentico.EMS.Kontent.Publishing
                     var data = AttachmentBinaryHelper.GetAttachmentBinary((DocumentAttachment)attachment);
                     var fileReference = await UploadBinaryFile(data, attachment.AttachmentMimeType, attachment.AttachmentName);
 
-                    await UpsertAsset(externalId, attachment.AttachmentName, attachment.AttachmentDescription, fileReference.Id);
+                    await UpsertAsset(externalId, title, attachment.AttachmentDescription, fileReference.Id);
                 }
                 else
                 {
                     // Update metadata of existing
-                    await UpsertAsset(externalId, attachment.AttachmentName, attachment.AttachmentDescription, existing.FileReference.Id);
+                    await UpsertAsset(externalId, title, attachment.AttachmentDescription, existing.FileReference.Id);
                 }
             }
             catch (Exception ex)

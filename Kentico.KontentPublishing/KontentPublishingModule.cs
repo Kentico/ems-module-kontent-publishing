@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -43,7 +45,7 @@ namespace Kentico.EMS.Kontent.Publishing
                 _taxonomySync = new TaxonomySync(_settings);
             }
         }
-        
+
         protected override void OnInit()
         {
             base.OnInit();
@@ -73,9 +75,11 @@ namespace Kentico.EMS.Kontent.Publishing
             if (_pageSync != null)
             {
                 DocumentEvents.Insert.After += PageUpdated;
+                DocumentEvents.InsertNewCulture.After += PageUpdated;
                 DocumentEvents.Update.Before += PageUpdating;
                 DocumentEvents.Update.After += PageUpdated;
                 DocumentEvents.Delete.After += PageDeleted;
+                DocumentEvents.Move.Before += PageMoving;
 
                 WorkflowEvents.Publish.Before += PagePublishing;
 
@@ -109,6 +113,11 @@ namespace Kentico.EMS.Kontent.Publishing
             KontentSyncWorker.Current.Enqueue(
                 () => Task.Run(async () => await action()).Wait()
             );
+        }
+
+        public bool isConfigurationValid()
+        {
+            return _settings.IsValid();
         }
 
         #endregion
@@ -231,11 +240,11 @@ namespace Kentico.EMS.Kontent.Publishing
                     {
                         // TODO - Remove when deleting referenced attachments with external ID is allowed
                         var node = DocumentHelper.GetDocument(attachment.AttachmentDocumentID, _tree);
-                        if ((node.DocumentWorkflowStepID == 0) && _pageSync.CanBePublished(node))
+                        if ((node != null) && (node.DocumentWorkflowStepID == 0) && _pageSync.CanBePublished(node))
                         {
                             // We need to delete and recreate page when deleting attachment for a page without workflow, because asset can be deleted only when not referenced
                             // Result is the same, but KC just wants it this way
-                            await _pageSync.DeletePage(null, node, false);
+                            await _pageSync.DeletePage(null, node);
                             await _assetSync.DeleteAttachment(attachment);
                             await _pageSync.SyncPage(null, node);
                             return;
@@ -261,7 +270,7 @@ namespace Kentico.EMS.Kontent.Publishing
                     {
                         // We need to delete and recreate page when deleting attachment for a page without workflow, because asset can be deleted only when not referenced
                         // Result is the same, but KC just wants it this way
-                        await _pageSync.DeletePage(null, node, false);
+                        await _pageSync.DeletePage(null, node);
                         await _assetSync.DeleteAttachment(attachment);
                         await _pageSync.SyncPage(null, node);
                     }
@@ -283,7 +292,7 @@ namespace Kentico.EMS.Kontent.Publishing
                 RunSynchronization(async () => await _assetSync.DeleteAllMediaFiles(mediaLibrary));
             }
         }
-        
+
         private void MediaFileDeleted(object sender, ObjectEventArgs e)
         {
             var mediaFile = e.Object as MediaFileInfo;
@@ -371,27 +380,22 @@ namespace Kentico.EMS.Kontent.Publishing
         private void PageUpdating(object sender, DocumentEventArgs e)
         {
             var oldCanBePublished = false;
-            var wasAtSynchronizedSite = false;
             var node = e.Node;
 
             node.ExecuteWithOriginalData(() =>
             {
                 oldCanBePublished = _pageSync.CanBePublished(node);
-                wasAtSynchronizedSite = _pageSync.IsAtSynchronizedSite(node);
             });
 
-            if (wasAtSynchronizedSite)
-            {
-                var canBePublished = _pageSync.CanBePublished(node);
+            var canBePublished = _pageSync.CanBePublished(node);
 
-                if (oldCanBePublished && !canBePublished)
+            if (oldCanBePublished && !canBePublished)
+            {
+                // Unpublished
+                e.CallWhenFinished(() =>
                 {
-                    // Unpublished
-                    e.CallWhenFinished(() =>
-                    {
-                        RunSynchronization(async () => await _pageSync.DeletePage(null, node));
-                    });
-                }
+                    RunSynchronization(async () => await _pageSync.DeletePage(null, node));
+                });
             }
         }
 
@@ -415,9 +419,60 @@ namespace Kentico.EMS.Kontent.Publishing
             }
         }
 
+        private void PageMoving(object sender, DocumentEventArgs e)
+        {
+            var node = e.Node;
+            var target = e.TargetParentNode;
+
+            bool isAtSynchronizedSite = _pageSync.IsAtSynchronizedSite(node);
+            bool targetIsAtSynchronizedSite = _pageSync.IsAtSynchronizedSite(target);
+
+            if (isAtSynchronizedSite != targetIsAtSynchronizedSite)
+            {
+                {
+                    // Delete subtree when moving away from synchronized site 
+                    if (!targetIsAtSynchronizedSite)
+                    {
+                        var subtree = DocumentHelper.GetDocuments()
+                            .OnSite(node.NodeSiteName)
+                            .Path(node.NodeAliasPath, PathTypeEnum.Section)
+                            .AllCultures()
+                            .TypedResult
+                            .ToList();
+
+                        RunSynchronization(async () =>
+                        {
+                            foreach (var page in subtree)
+                            {
+                                await _pageSync.DeletePage(null, page);
+                            }
+                        });
+                    }
+
+                    e.CallWhenFinished(() =>
+                    {
+                        var subtree = DocumentHelper.GetDocuments()
+                            .OnSite(node.NodeSiteName)
+                            .Path(node.NodeAliasPath, PathTypeEnum.Section)
+                            .AllCultures()
+                            .TypedResult
+                            .ToList();
+
+                        RunSynchronization(async () =>
+                        {
+                            foreach (var page in subtree)
+                            {
+                                await _pageSync.SyncPage(null, page);
+                            }
+                        });
+                    });
+                }
+            }
+        }
+
         #endregion
 
-        #region "Public methods"
+        #region "Sync methods"
 
         public async Task SyncMediaLibraries(CancellationToken? cancellation)
         {
@@ -454,15 +509,6 @@ namespace Kentico.EMS.Kontent.Publishing
             await _pageSync.SyncAllPages(cancellation);
         }
 
-        public async Task DeleteAll(CancellationToken? cancellation)
-        {
-            await _pageSync.DeleteAllItems(cancellation);
-            await _contentTypeSync.DeleteAllContentTypes(cancellation);
-            await _contentTypeSync.DeleteAllContentTypeSnippets(cancellation);
-            await _taxonomySync.DeleteAllTaxonomies(cancellation);
-            await _assetSync.DeleteAllAssets(cancellation);
-        }
-
         public async Task SyncAll(CancellationToken? cancellation)
         {
             await SyncMediaLibraries(cancellation);
@@ -474,9 +520,42 @@ namespace Kentico.EMS.Kontent.Publishing
             await SyncPages(cancellation);
         }
 
-        public bool isConfigurationValid()
+        #endregion
+
+        #region "Delete methods"
+
+        public async Task DeleteAssets(CancellationToken? cancellation)
         {
-            return _settings.IsValid();
+            await _assetSync.DeleteAllAssets(cancellation);
+        }
+
+        public async Task DeleteContentTypeSnippets(CancellationToken? cancellation)
+        {
+            await _contentTypeSync.DeleteAllContentTypeSnippets(cancellation);
+        }
+
+        public async Task DeleteTaxonomies(CancellationToken? cancellation)
+        {
+            await _taxonomySync.DeleteAllTaxonomies(cancellation);
+        }
+
+        public async Task DeleteItems(CancellationToken? cancellation)
+        {
+            await _pageSync.DeleteAllItems(cancellation);
+        }
+
+        public async Task DeleteContentTypes(CancellationToken? cancellation)
+        {
+            await _contentTypeSync.DeleteAllContentTypes(cancellation);
+        }
+
+        public async Task DeleteAll(CancellationToken? cancellation)
+        {
+            await DeleteItems(cancellation);
+            await DeleteContentTypes(cancellation);
+            await DeleteContentTypeSnippets(cancellation);
+            await DeleteTaxonomies(cancellation);
+            await DeleteAssets(cancellation);
         }
 
         #endregion
