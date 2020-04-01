@@ -601,7 +601,6 @@
     <Compile Include="KontentPublishingModule.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Helpers\RegExExtensions.cs" />
-    <Compile Include="Sync\Purge.cs" />
     <Compile Include="Models\General\ExternalIdReference.cs" />
     <Compile Include="Sync\StringExtensions.cs" />
     <Compile Include="Sync\SyncBase.cs" />

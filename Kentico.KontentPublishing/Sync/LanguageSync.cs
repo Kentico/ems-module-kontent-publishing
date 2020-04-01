@@ -9,7 +9,6 @@ using System.Web;
 using CMS.EventLog;
 using CMS.Localization;
 using CMS.SiteProvider;
-using CMS.Taxonomy;
 
 namespace Kentico.EMS.Kontent.Publishing
 {
@@ -23,9 +22,9 @@ namespace Kentico.EMS.Kontent.Publishing
 
         #region "External IDs"
 
-        public static string GetLanguageExternalId(string cultureCode)
+        public static string GetLanguageExternalId(Guid cultureGuid)
         {
-            return $"language|{cultureCode}";
+            return $"language|{cultureGuid}";
         }
 
         #endregion
@@ -75,21 +74,144 @@ namespace Kentico.EMS.Kontent.Publishing
                 SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "ENSURECULTURES");
 
                 var existingLanguages = await GetAllLanguages();
-                var cultures = CultureSiteInfoProvider.GetSiteCultures(Settings.Sitename);
+                var cultures = CultureSiteInfoProvider.GetSiteCultures(Settings.Sitename).ToList();
 
-                var missingCultures = cultures.Where(
-                    // Culture code name is case sensitive, it must be exact
-                    culture => !existingLanguages.Exists(language => language.Codename.Equals(culture.CultureCode.LimitedTo(CULTURE_MAXLENGTH)))
-                );
+                await PatchDefaultLanguage();
 
-                foreach (var culture in missingCultures)
+                // Deactivate all unknown languages to make sure they don't conflict with the active ones
+                foreach (var language in existingLanguages)
                 {
-                    await CreateLanguage(culture);
+                    if (language.IsActive && (language.Id != Guid.Empty) && !cultures.Exists(culture => GetLanguageExternalId(culture.CultureGUID).Equals(language.ExternalId)))
+                    {
+                        await DeactivateLanguage(language);
+                    }
+                }
+
+                // Create or update all known languages
+                foreach (var culture in cultures)
+                {
+                    if (existingLanguages.Exists(language => language.ExternalId?.Equals(GetLanguageExternalId(culture.CultureGUID)) == true))
+                    {
+                        await PatchLanguage(culture);
+                    }
+                    else
+                    {
+                        await CreateLanguage(culture);
+                    }
                 }
             }
             catch (Exception ex)
             {
                 SyncLog.LogException("KenticoKontentPublishing", "ENSURECULTURES", ex);
+                throw;
+            }
+        }
+
+        private async Task DeactivateLanguage(LanguageData language)
+        {
+            try
+            {
+                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "DEACTIVATELANGUAGE", $"{language.Codename})");
+
+                var endpoint = $"/languages/{language.Id}";
+
+                var payload = new object[] {
+                    new
+                    {
+                        op = "replace",
+                        property_name = "name",
+                        value = ("(deactivated) " + language.Name).LimitedTo(CULTURE_MAXLENGTH),
+                    },
+                    new
+                    {
+                        op = "replace",
+                        property_name = "codename",
+                        value = ("deactivated_" + language.Codename).LimitedTo(CULTURE_MAXLENGTH),
+                    },
+                    new
+                    {
+                        op = "replace",
+                        property_name = "is_active",
+                        value = false,
+                    },
+                };
+
+                await ExecuteWithoutResponse(endpoint, PATCH, payload);
+            }
+            catch (Exception ex)
+            {
+                SyncLog.LogException("KenticoKontentPublishing", "CREATECULTURE", ex);
+                throw;
+            }
+        }
+
+        private async Task PatchDefaultLanguage()
+        {
+            try
+            {
+                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "PATCHDEFAULTCULTURE");
+
+                var endpoint = $"/languages/{Guid.Empty}";
+
+                var payload = new object[] {
+                    new
+                    {
+                        op = "replace",
+                        property_name = "name",
+                        value = "Default (do not use)",
+                    },
+                    new
+                    {
+                        op = "replace",
+                        property_name = "codename",
+                        value = "default_do_not_use",
+                    },
+                };
+
+                await ExecuteWithoutResponse(endpoint, PATCH, payload);
+            }
+            catch (Exception ex)
+            {
+                SyncLog.LogException("KenticoKontentPublishing", "CREATECULTURE", ex);
+                throw;
+            }
+        }
+
+        private async Task PatchLanguage(CultureInfo culture)
+        {
+            try
+            {
+                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "PATCHCULTURE", $"{culture.CultureName} ({culture.CultureCode})");
+
+                var externalId = GetLanguageExternalId(culture.CultureGUID);
+                var endpoint = $"/languages/external-id/{externalId}";
+
+                var payload = new object[] {
+                    new
+                    {
+                        op = "replace",
+                        property_name = "name",
+                        value = culture.CultureName.LimitedTo(CULTURE_MAXLENGTH),
+                    },
+                    new
+                    {
+                        op = "replace",
+                        property_name = "codename",
+                        value = culture.CultureCode.LimitedTo(CULTURE_MAXLENGTH),
+                    },
+                    new
+                    {
+                        op = "replace",
+                        property_name = "is_active",
+                        value = true,
+                    },
+                };
+
+                await ExecuteWithoutResponse(endpoint, PATCH, payload);
+            }
+            catch (Exception ex)
+            {
+                SyncLog.LogException("KenticoKontentPublishing", "CREATECULTURE", ex);
                 throw;
             }
         }
@@ -100,13 +222,13 @@ namespace Kentico.EMS.Kontent.Publishing
             {
                 SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "CREATECULTURE", $"{culture.CultureName} ({culture.CultureCode})");
 
-                var externalId = GetLanguageExternalId(culture.CultureCode);
+                var externalId = GetLanguageExternalId(culture.CultureGUID);
                 var endpoint = $"/languages";
 
                 var payload = new
                 {
                     name = culture.CultureName.LimitedTo(CULTURE_MAXLENGTH),
-                    codename = culture.CultureCode.ToLower().LimitedTo(CULTURE_MAXLENGTH),
+                    codename = culture.CultureCode.LimitedTo(CULTURE_MAXLENGTH),
                     external_id = externalId,
                     is_active = true,
                     // Default language is always empty, and no fallback is used as a result

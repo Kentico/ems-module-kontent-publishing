@@ -1,5 +1,5 @@
 ﻿<%@ Page Language="C#" AutoEventWireup="true" Inherits="CMSModules_Kentico_KontentPublishing_Pages_Sync"
-    Theme="Default" MasterPageFile="~/CMSMasterPages/UI/SimplePage.master" Title="Kentico Cloud Publishing" CodeBehind="Sync.aspx.cs" %>
+    Theme="Default" MasterPageFile="~/CMSMasterPages/UI/SimplePage.master" Title="Kentico Kontent Publishing" CodeBehind="Sync.aspx.cs" %>
 
 <%@ Register Src="~/CMSAdminControls/AsyncLogDialog.ascx" TagName="AsyncLog"
     TagPrefix="cms" %>
@@ -15,7 +15,7 @@
         <cms:LocalizedButton runat="server" ID="btnDangerZone" OnClick="btnDangerZone_Click" Text="Show advanced actions" ButtonStyle="Default" />
         <asp:Panel runat="server" ID="pnlDangerZone" Visible="false">
             <br />
-            <cms:LocalizedButton ID="btnDeleteAll" runat="server" OnClick="btnDeleteAll_Click" EnableViewState="false" Text="Delete all data in Kentico Kontent" ButtonStyle="Default" OnClientClick="return confirm('This will delete all data in the target Kentico Cloud project, not only the data synchronized from this site. Are you sure you want to continue?')" />
+            <cms:LocalizedButton ID="btnDeleteAll" runat="server" OnClick="btnDeleteAll_Click" EnableViewState="false" Text="Delete all data in Kentico Kontent" ButtonStyle="Default" OnClientClick="return confirm('This will delete all data in the target Kentico Kontent project, not only the data synchronized from this site. Are you sure you want to continue?')" />
             <br /><br />
             <h4>Granular sync to Kontent</h4>
             <p>Execute in the defined order after deleting all. Some stages can be re-synced individually unless there is a strong reference from later object types.</p>
