@@ -1,12 +1,4 @@
-﻿using CMS.DataEngine;
-using CMS.DocumentEngine;
-using CMS.FormEngine;
-using CMS.EventLog;
-using CMS.Relationships;
-using CMS.SiteProvider;
-using CMS.Base.Web.UI;
-
-using System;
+﻿using System;
 using System.Web;
 using System.Data;
 using System.Linq;
@@ -15,6 +7,15 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Threading;
+
+using CMS.DataEngine;
+using CMS.DocumentEngine;
+using CMS.FormEngine;
+using CMS.EventLog;
+using CMS.Relationships;
+using CMS.SiteProvider;
+using CMS.Base.Web.UI;
+using CMS.Localization;
 
 namespace Kentico.EMS.Kontent.Publishing
 {
@@ -46,10 +47,28 @@ namespace Kentico.EMS.Kontent.Publishing
             return $"node|{nodeGuid}";
         }
 
+        private string GetVariantEndpoint(TreeNode node)
+        {
+            var itemExternalId = GetPageExternalId(node.NodeGUID);
+            var cultureInfo = CultureInfoProvider.GetCultureInfo(node.DocumentCulture);
+            if (cultureInfo == null)
+            {
+                throw new InvalidOperationException($"Document culture '{node.DocumentCulture}' not found.");
+            }
+
+            var endpoint = $"/items/external-id/{HttpUtility.UrlEncode(itemExternalId)}/variants/codename/{HttpUtility.UrlEncode(cultureInfo.CultureCode)}";
+
+            // Use this when endpoints by external ID are supported
+            // var languageExternalId = LanguageSync.GetLanguageExternalId(cultureInfo.CultureGUID);
+            // var endpoint = $"/items/external-id/{HttpUtility.UrlEncode(itemExternalId)}/variants/external-id/{HttpUtility.UrlEncode(languageExternalId)}";
+
+            return endpoint;
+        }
+
         private async Task UnpublishVariant(TreeNode node)
         {
-            var externalId = GetPageExternalId(node.NodeGUID);
-            var endpoint = $"/items/external-id/{HttpUtility.UrlEncode(externalId)}/variants/codename/{HttpUtility.UrlEncode(node.DocumentCulture)}/unpublish";
+            var variantEndpoint = GetVariantEndpoint(node);
+            var endpoint = $"{variantEndpoint}/unpublish";
 
             await ExecuteWithoutResponse(endpoint, HttpMethod.Put);
         }
@@ -90,8 +109,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
         private async Task<bool> DeleteVariant(TreeNode node)
         {
-            var externalId = GetPageExternalId(node.NodeGUID);
-            var endpoint = $"/items/external-id/{HttpUtility.UrlEncode(externalId)}/variants/codename/{HttpUtility.UrlEncode(node.DocumentCulture)}";
+            var endpoint = GetVariantEndpoint(node);
 
             try
             {
@@ -225,7 +243,7 @@ namespace Kentico.EMS.Kontent.Publishing
             }
 
             var externalId = GetPageExternalId(node.NodeGUID);
-            var endpoint = $"/items/external-id/{HttpUtility.UrlEncode(externalId)}/variants/codename/{HttpUtility.UrlEncode(node.DocumentCulture)}";
+            var endpoint = GetVariantEndpoint(node);
 
             var contentType = DataClassInfoProvider.GetDataClassInfo(node.NodeClassName);
             if (contentType == null)
@@ -312,8 +330,8 @@ namespace Kentico.EMS.Kontent.Publishing
         
         private async Task PublishVariant(TreeNode node, DateTime? publishWhen)
         {
-            var externalId = GetPageExternalId(node.NodeGUID);
-            var endpoint = $"/items/external-id/{HttpUtility.UrlEncode(externalId)}/variants/codename/{HttpUtility.UrlEncode(node.DocumentCulture)}/publish";
+            var variantEndpoint = GetVariantEndpoint(node);
+            var endpoint = $"{variantEndpoint}/publish";
 
             var isScheduledToFuture = publishWhen.HasValue && (publishWhen.Value > DateTime.Now.AddMinutes(1));
             var payload = isScheduledToFuture ?
@@ -330,8 +348,8 @@ namespace Kentico.EMS.Kontent.Publishing
         {
             try
             {
-                var externalId = GetPageExternalId(node.NodeGUID);
-                var endpoint = $"/items/external-id/{HttpUtility.UrlEncode(externalId)}/variants/codename/{HttpUtility.UrlEncode(node.DocumentCulture)}/cancel-scheduled-publish";
+                var variantEndpoint = GetVariantEndpoint(node);
+                var endpoint = $"{variantEndpoint}/cancel-scheduled-publish";
 
                 await ExecuteWithoutResponse(endpoint, HttpMethod.Put);
             }
@@ -357,7 +375,8 @@ namespace Kentico.EMS.Kontent.Publishing
             try
             {
                 var externalId = GetPageExternalId(node.NodeGUID);
-                var endpoint = $"/items/external-id/{HttpUtility.UrlEncode(externalId)}/variants/codename/{HttpUtility.UrlEncode(node.DocumentCulture)}/new-version";
+                var variantEndpoint = GetVariantEndpoint(node);
+                var endpoint = $"{variantEndpoint}/new-version";
 
                 await ExecuteWithoutResponse(endpoint, HttpMethod.Put);
             }

@@ -49,11 +49,11 @@ Create a **new empty project** in [Kentico Kontent](https://app.kontent.ai).
 Add the following keys to the web.config (or app.config) of your project(s)
 
 ```
-<add key="KCSyncSitename" value="<SITE CODE NAME>" />
-<add key="KCSyncWebRoot" value="<URL OF THE TARGET WEB SITE>" />
-<add key="KCSyncAssetsDomain" value="<KENTICO KONTENT ASSET DOMAIN>" />
-<add key="KCSyncProjectID" value="<YOUR PROJECT ID>" />
-<add key="KCSyncCMAPIKey" value="<YOUR CM API KEY>" />
+<add key="KCSyncSitename" value="[SITE CODE NAME]" />
+<add key="KCSyncWebRoot" value="[URL OF THE TARGET WEB SITE]" />
+<add key="KCSyncAssetsDomain" value="[KENTICO KONTENT ASSET DOMAIN]" />
+<add key="KCSyncProjectID" value="[YOUR PROJECT ID]" />
+<add key="KCSyncCMAPIKey" value="[YOUR CM API KEY]" />
 ```
 
 `KCSyncSitename` is the code name of the site you want to synchronize to Kentico Kontent, e.g. `DancingGoatMvc`
@@ -113,6 +113,25 @@ In case you would like to embrace fully headless CMS, migrate your content and c
 NOTE: The module synchronizes only published content. If you have any unpublished content that you wish to migrate, publish it before the data migration. 
 
 Continue with the editing in Kentico Kontent.
+
+### Development
+
+You can merge this repository with your existing Kentico EMS project and make commits to it provided it doesn't have it's own git repository.
+
+Follow the installation guide, but instead of cloning the repository to another folder and copying it over to your installation, clone it directly to your existing Kentico EMS installation.
+
+Run the following commands in command line:
+
+```
+cd your/kentico/ems/root/folder
+git init
+echo * > .gitignore
+git remote add origin https://github.com/Kentico/ems-module-kontent-publishing.git
+git fetch
+git checkout origin/master -b master
+```
+
+After this, you can easily edit the code, and commit changes to the original repository. Feel free to submit any pull requests with fixed or enhanced functionality.
 
 ### Module uninstallation
 

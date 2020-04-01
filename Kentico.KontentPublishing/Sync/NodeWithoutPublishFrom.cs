@@ -1,7 +1,7 @@
-﻿using CMS.DocumentEngine;
-using CMS.Base;
+﻿using System.Collections.Generic;
 
-using System.Collections.Generic;
+using CMS.DocumentEngine;
+using CMS.Base;
 
 namespace Kentico.EMS.Kontent.Publishing
 {
