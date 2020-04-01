@@ -680,10 +680,9 @@ namespace Kentico.EMS.Kontent.Publishing
 
         private async Task<List<Guid>> GetAllContentTypeIds(string continuationToken = null)
         {
-            var query = (continuationToken != null) ? "?continuationToken=" + HttpUtility.UrlEncode(continuationToken) : "";
-            var itemsEndpoint = $"/types{query}";
+            var itemsEndpoint = $"/types";
 
-            var response = await ExecuteWithResponse<ContentTypesResponse>(itemsEndpoint, HttpMethod.Get);
+            var response = await ExecuteWithResponse<ContentTypesResponse>(itemsEndpoint, HttpMethod.Get, continuationToken);
             if (response == null)
             {
                 return new List<Guid>();
@@ -743,10 +742,9 @@ namespace Kentico.EMS.Kontent.Publishing
 
         private async Task<List<Guid>> GetAllContentTypeSnippetIds(string continuationToken = null)
         {
-            var query = (continuationToken != null) ? "?continuationToken=" + HttpUtility.UrlEncode(continuationToken) : "";
-            var endpoint = $"/snippets{query}";
+            var endpoint = $"/snippets";
 
-            var response = await ExecuteWithResponse<SnippetsResponse>(endpoint, HttpMethod.Get);
+            var response = await ExecuteWithResponse<SnippetsResponse>(endpoint, HttpMethod.Get, continuationToken);
             if (response == null)
             {
                 return new List<Guid>();

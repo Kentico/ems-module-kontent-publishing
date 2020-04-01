@@ -40,10 +40,9 @@ namespace Kentico.EMS.Kontent.Publishing
 
         private async Task<List<LanguageData>> GetAllLanguages(string continuationToken = null)
         {
-            var query = (continuationToken != null) ? "?continuationToken=" + HttpUtility.UrlEncode(continuationToken) : "";
-            var endpoint = $"/languages{query}";
+            var endpoint = $"/languages";
 
-            var response = await ExecuteWithResponse<LanguagesResponse>(endpoint, HttpMethod.Get);
+            var response = await ExecuteWithResponse<LanguagesResponse>(endpoint, HttpMethod.Get, continuationToken);
             if (response == null)
             {
                 return new List<LanguageData>();

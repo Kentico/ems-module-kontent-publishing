@@ -61,7 +61,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
                 RelationshipNameInfo.TYPEINFO.Events.Insert.After += RelationshipNameCreated;
                 RelationshipNameInfo.TYPEINFO.Events.Update.Before += RelationshipNameUpdating;
-                RelationshipNameInfo.TYPEINFO.Events.Delete.After += RelationshipsNameDeleted;
+                RelationshipNameInfo.TYPEINFO.Events.Delete.Before += RelationshipsNameDeleting;
 
                 RelationshipNameSiteInfo.TYPEINFO.Events.Insert.After += RelationshipNameSiteChanged;
                 RelationshipNameSiteInfo.TYPEINFO.Events.Delete.After += RelationshipNameSiteChanged;
@@ -199,12 +199,14 @@ namespace Kentico.EMS.Kontent.Publishing
             }
         }
 
-        private void RelationshipsNameDeleted(object sender, ObjectEventArgs e)
+        private void RelationshipsNameDeleting(object sender, ObjectEventArgs e)
         {
             var relationshipName = e.Object as RelationshipNameInfo;
             if ((relationshipName != null) && _contentTypeSync.IsAtSynchronizedSite(relationshipName))
             {
-                RunSynchronization(async () => await _contentTypeSync.SyncRelationships(null));
+                e.CallWhenFinished(
+                    () => RunSynchronization(async () => await _contentTypeSync.SyncRelationships(null))
+                );
             }
         }
 

@@ -69,10 +69,14 @@ namespace Kentico.EMS.Kontent.Publishing
             _settings = settings;
         }
 
-        private HttpRequestMessage CreateMessage(string endpointUrl, HttpMethod method, object payload = null, bool includeNullValues = false)
+        private HttpRequestMessage CreateMessage(string endpointUrl, HttpMethod method, string continuationToken = null, object payload = null, bool includeNullValues = false)
         {
             var message = new HttpRequestMessage(method, endpointUrl);
             message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _settings.CMApiKey);
+            if (continuationToken != null)
+            {
+                message.Headers.Add("x-continuation", continuationToken);
+            }
 
             if (payload != null)
             {
@@ -126,17 +130,17 @@ namespace Kentico.EMS.Kontent.Publishing
         {
             var endpointUrl = $"{ApiRoot}/projects/{_settings.ProjectId}{endpoint}";
 
-            using (var response = await SendMessage(() => CreateMessage(endpointUrl, method, payload, includeNullValues)))
+            using (var response = await SendMessage(() => CreateMessage(endpointUrl, method, null, payload, includeNullValues)))
             {
                 await HandleStatusCode(response);
             }
         }
 
-        protected async Task<T> ExecuteWithResponse<T>(string endpoint, HttpMethod method, object payload = null, bool includeNullValues = false) where T : class
+        protected async Task<T> ExecuteWithResponse<T>(string endpoint, HttpMethod method, string continuationToken = null, object payload = null, bool includeNullValues = false) where T : class
         {
             var endpointUrl = $"{ApiRoot}/projects/{_settings.ProjectId}{endpoint}";
 
-            using (var response = await SendMessage(() => CreateMessage(endpointUrl, method, payload, includeNullValues)))
+            using (var response = await SendMessage(() => CreateMessage(endpointUrl, method, continuationToken, payload, includeNullValues)))
             {
                 // 404 response is valid response for GET requests
                 if ((method == HttpMethod.Get) && (response.StatusCode == HttpStatusCode.NotFound))
