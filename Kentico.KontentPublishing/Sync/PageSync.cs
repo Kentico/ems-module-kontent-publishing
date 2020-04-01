@@ -16,6 +16,7 @@ using CMS.Relationships;
 using CMS.SiteProvider;
 using CMS.Base.Web.UI;
 using CMS.Localization;
+using CMS.Taxonomy;
 
 namespace Kentico.EMS.Kontent.Publishing
 {
@@ -288,16 +289,25 @@ namespace Kentico.EMS.Kontent.Publishing
                     external_id = TaxonomySync.GetCategoryTermExternalId(guid)
                 }).ToList()
             };
-            var relationshipElements = new DataQuery()
+
+            var siteId = SiteInfoProvider.GetSiteID(Settings.Sitename);
+
+            var relationshipsQuery = new DataQuery()
                 .From(
-                    new QuerySource(new QuerySourceTable("CMS_Relationship", "R"))
-                        .LeftJoin(new QuerySourceTable("CMS_Tree", "T"), "R.RightNodeID", "NodeID")
-                        .LeftJoin(new QuerySourceTable("CMS_RelationshipName", "RN"), "R.RelationshipNameID", "RN.RelationshipNameID")
+@"
+CMS_Relationship R
+LEFT JOIN CMS_Tree T ON R.RightNodeID = NodeID
+FULL OUTER JOIN CMS_RelationshipNameSite RNS ON R.RelationshipNameID = RNS.RelationshipNameID
+LEFT JOIN CMS_RelationshipName RN ON RNS.RelationshipNameID = RNS.RelationshipNameID
+"
                 )
                 .Columns("NodeGUID", "RelationshipGUID")
-                .WhereEquals("LeftNodeID", node.NodeID)
+                .WhereEqualsOrNull("LeftNodeID", node.NodeID)
                 .WhereEqualsOrNull("RelationshipNameIsAdHoc", false)
-                .OrderBy("RelationshipOrder")
+                .WhereEquals("RNS.SiteID", siteId)
+                .OrderBy("RelationshipOrder");
+
+            var relationshipElements = relationshipsQuery
                 .Result
                 .Tables[0]
                 .AsEnumerable()
@@ -307,10 +317,10 @@ namespace Kentico.EMS.Kontent.Publishing
                     {
                         external_id = ContentTypeSync.GetFieldExternalId(ContentTypeSync.RELATED_PAGES_GUID, group.Key)
                     },
-                    value = (object)group.Select(row => new
-                    {
-                        external_id = GetPageExternalId((Guid)row["NodeGUID"])
-                    }).ToList()
+                    value = (object)group
+                        .Where(row => row["NodeGUID"] != DBNull.Value)
+                        .Select(row => new { external_id = GetPageExternalId((Guid)row["NodeGUID"]) })
+                        .ToList()
                 })
                 .ToList();
 
@@ -508,6 +518,7 @@ namespace Kentico.EMS.Kontent.Publishing
                 .Columns("CategoryGUID")
                 .WhereEquals("DocumentID", node.DocumentID)
                 .WhereEqualsOrNull("CategorySiteID", siteId)
+                .WhereNull("CategoryUserID")
                 .Result
                 .Tables[0]
                 .AsEnumerable()
