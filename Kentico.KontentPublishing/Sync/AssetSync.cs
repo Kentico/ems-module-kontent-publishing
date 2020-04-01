@@ -57,10 +57,9 @@ namespace Kentico.EMS.Kontent.Publishing
 
         private async Task<List<Guid>> GetAllAssetIds(string continuationToken = null)
         {
-            var query = (continuationToken != null) ? "?continuationToken=" + HttpUtility.UrlEncode(continuationToken) : "";
-            var endpoint = $"/assets{query}";
+            var endpoint = $"/assets";
 
-            var response = await ExecuteWithResponse<AssetsResponse>(endpoint, HttpMethod.Get);
+            var response = await ExecuteWithResponse<AssetsResponse>(endpoint, HttpMethod.Get, continuationToken);
             if (response == null)
             {
                 return new List<Guid>();

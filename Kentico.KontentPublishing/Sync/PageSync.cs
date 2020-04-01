@@ -776,10 +776,9 @@ LEFT JOIN CMS_RelationshipName RN ON RNS.RelationshipNameID = RNS.RelationshipNa
 
         private async Task<List<Guid>> GetAllItemIds(Guid? contentTypeId, string continuationToken = null)
         {
-            var query = (continuationToken != null) ? "?continuationToken=" + HttpUtility.UrlEncode(continuationToken) : "";
-            var endpoint = $"/items{query}";
+            var endpoint = $"/items";
 
-            var response = await ExecuteWithResponse<ItemsResponse>(endpoint, HttpMethod.Get);
+            var response = await ExecuteWithResponse<ItemsResponse>(endpoint, HttpMethod.Get, continuationToken);
             if (response == null)
             {
                 return new List<Guid>();

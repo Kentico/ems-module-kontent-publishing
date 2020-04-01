@@ -159,10 +159,9 @@ namespace Kentico.EMS.Kontent.Publishing
         
         private async Task<List<Guid>> GetAllTaxonomyIds(string continuationToken = null)
         {
-            var query = (continuationToken != null) ? "?continuationToken=" + HttpUtility.UrlEncode(continuationToken) : "";
-            var endpoint = $"/taxonomies{query}";
+            var endpoint = $"/taxonomies";
 
-            var response = await ExecuteWithResponse<TaxonomyResponse>(endpoint, HttpMethod.Get);
+            var response = await ExecuteWithResponse<TaxonomyResponse>(endpoint, HttpMethod.Get, continuationToken);
             if (response == null)
             {
                 return new List<Guid>();
