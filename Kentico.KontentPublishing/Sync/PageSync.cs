@@ -337,7 +337,7 @@ LEFT JOIN CMS_RelationshipName RN ON RNS.RelationshipNameID = RNS.RelationshipNa
 
             await ExecuteWithoutResponse(endpoint, HttpMethod.Put, payload, true);
         }
-        
+
         private async Task PublishVariant(TreeNode node, DateTime? publishWhen)
         {
             var variantEndpoint = GetVariantEndpoint(node);
@@ -418,6 +418,24 @@ LEFT JOIN CMS_RelationshipName RN ON RNS.RelationshipNameID = RNS.RelationshipNa
                 {
                     await SyncPage(cancellation, node);
                 }
+            }
+        }
+
+        public async Task SyncPageWithAllData(CancellationToken? cancellation, TreeNode node)
+        {
+            await SyncPage(cancellation, node);
+            if (cancellation?.IsCancellationRequested == true)
+            {
+                await _assetSync.SyncAllAttachments(cancellation, node);
+            }
+        }
+        
+        public async Task DeletePageWithAllData(CancellationToken? cancellation, TreeNode node)
+        {
+            await _assetSync.DeleteAllAttachments(cancellation, node);
+            if (cancellation?.IsCancellationRequested == true)
+            {
+                await DeletePage(cancellation, node);
             }
         }
 

@@ -11,6 +11,7 @@ using CMS.EventLog;
 using CMS.MediaLibrary;
 using CMS.IO;
 using CMS.SiteProvider;
+using CMS.DataEngine;
 
 namespace Kentico.EMS.Kontent.Publishing
 {
@@ -392,8 +393,9 @@ namespace Kentico.EMS.Kontent.Publishing
                 SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "DELETEATTACHMENTS", node.NodeAliasPath);
 
                 var attachments = AttachmentInfoProvider.GetAttachments(node.DocumentID, false)
-                    .ExceptVariants()
-                    .TypedResult;
+                    .ExceptVariants();
+
+                var index = 0;
 
                 foreach (var attachment in attachments)
                 {
@@ -401,6 +403,10 @@ namespace Kentico.EMS.Kontent.Publishing
                     {
                         return;
                     }
+
+                    index++;
+
+                    SyncLog.Log($"Deleting attachment {attachment.AttachmentName} ({index}/{attachments.Count})");
 
                     await DeleteAttachment(attachment);
                 }
@@ -421,26 +427,9 @@ namespace Kentico.EMS.Kontent.Publishing
                 SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "UPSERTALLATTACHMENTS");
 
                 var attachments = AttachmentInfoProvider.GetAttachments()
-                    .OnSite(Settings.Sitename)
-                    .ExceptVariants()
-                    .BinaryData(false);
+                    .OnSite(Settings.Sitename);
 
-                var index = 0;
-
-                foreach (var attachment in attachments)
-                {
-                    if (cancellation?.IsCancellationRequested == true)
-                    {
-                        return;
-                    }
-
-                    index++;
-
-                    SyncLog.Log($"Synchronizing attachment {attachment.AttachmentName} ({index}/{attachments.Count})");
-
-                    await SyncAttachment(attachment);
-
-                }
+                await SyncAttachments(cancellation, attachments);
             }
             catch (Exception ex)
             {
@@ -448,21 +437,40 @@ namespace Kentico.EMS.Kontent.Publishing
                 throw;
             }
         }
-        
-        public async Task SyncAllAttachments(TreeNode node)
+
+        private async Task SyncAttachments(CancellationToken? cancellation, ObjectQuery<AttachmentInfo> attachments)
+        {
+            var processAttachments = attachments
+                .Clone()
+                .ExceptVariants()
+                .BinaryData(false);
+
+            var index = 0;
+
+            foreach (var attachment in processAttachments)
+            {
+                if (cancellation?.IsCancellationRequested == true)
+                {
+                    return;
+                }
+
+                index++;
+
+                SyncLog.Log($"Synchronizing attachment {attachment.AttachmentName} ({index}/{attachments.Count})");
+
+                await SyncAttachment(attachment);
+            }
+        }
+
+        public async Task SyncAllAttachments(CancellationToken? cancellation, TreeNode node)
         {
             try
             {
                 SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "SYNCALLATTACHMENTS", node.NodeAliasPath);
 
-                var attachments = AttachmentInfoProvider.GetAttachments(node.DocumentID, false)
-                    .ExceptVariants()
-                    .TypedResult;
+                var attachments = AttachmentInfoProvider.GetAttachments(node.DocumentID, false);
 
-                foreach (var attachment in attachments)
-                {
-                    await SyncAttachment(attachment);
-                }
+                await SyncAttachments(cancellation, attachments);
             }
             catch (Exception ex)
             {
