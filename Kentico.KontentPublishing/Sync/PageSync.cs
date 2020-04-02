@@ -16,7 +16,6 @@ using CMS.Relationships;
 using CMS.SiteProvider;
 using CMS.Base.Web.UI;
 using CMS.Localization;
-using CMS.Taxonomy;
 
 namespace Kentico.EMS.Kontent.Publishing
 {
@@ -126,6 +125,35 @@ namespace Kentico.EMS.Kontent.Publishing
                     return false;
                 }
 
+                throw;
+            }
+        }
+
+        public async Task DeletePages(CancellationToken? cancellation, ICollection<TreeNode> nodes, string info)
+        {
+            try
+            {
+                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "DELETEPAGES", info);
+
+                var index = 0;
+
+                foreach (var node in nodes)
+                {
+                    if (cancellation?.IsCancellationRequested == true)
+                    {
+                        return;
+                    }
+
+                    index++;
+
+                    SyncLog.Log($"Deleting page {node.NodeAliasPath} ({index}/{nodes.Count})");
+
+                    await DeletePage(cancellation, node);
+                }
+            }
+            catch (Exception ex)
+            {
+                SyncLog.LogException("KenticoKontentPublishing", "DELETEPAGES", ex);
                 throw;
             }
         }
@@ -423,20 +451,11 @@ LEFT JOIN CMS_RelationshipName RN ON RNS.RelationshipNameID = RNS.RelationshipNa
 
         public async Task SyncPageWithAllData(CancellationToken? cancellation, TreeNode node)
         {
-            await SyncPage(cancellation, node);
             if (cancellation?.IsCancellationRequested == true)
             {
                 await _assetSync.SyncAllAttachments(cancellation, node);
             }
-        }
-        
-        public async Task DeletePageWithAllData(CancellationToken? cancellation, TreeNode node)
-        {
-            await _assetSync.DeleteAllAttachments(cancellation, node);
-            if (cancellation?.IsCancellationRequested == true)
-            {
-                await DeletePage(cancellation, node);
-            }
+            await SyncPage(cancellation, node);
         }
 
         public async Task SyncPage(CancellationToken? cancellation, TreeNode node)

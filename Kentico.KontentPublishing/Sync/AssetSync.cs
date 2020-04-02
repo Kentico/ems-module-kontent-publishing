@@ -281,19 +281,25 @@ namespace Kentico.EMS.Kontent.Publishing
             }
         }
 
-        public async Task DeleteAllMediaFiles(MediaLibraryInfo mediaLibrary)
+        public async Task DeleteMediaFiles(CancellationToken? cancellation, ICollection<MediaFileInfo> mediaFiles, string info)
         {
             try
             {
-                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "DELETEMEDIAFILES", mediaLibrary.LibraryDisplayName);
+                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "DELETEMEDIAFILES", info);
 
-                var mediaFiles = MediaFileInfoProvider.GetMediaFiles()
-                    .WhereEquals("FileLibraryID", mediaLibrary.LibraryID)
-                    .BinaryData(false)
-                    .TypedResult;
+                var index = 0;
 
                 foreach (var mediaFile in mediaFiles)
                 {
+                    if (cancellation?.IsCancellationRequested == true)
+                    {
+                        return;
+                    }
+
+                    index++;
+
+                    SyncLog.Log($"Deleting media file {mediaFile.FileName} ({index}/{mediaFiles.Count})");
+
                     await DeleteMediaFile(mediaFile);
                 }
             }
@@ -386,14 +392,11 @@ namespace Kentico.EMS.Kontent.Publishing
             }
         }
 
-        public async Task DeleteAllAttachments(CancellationToken? cancellation, TreeNode node)
+        public async Task DeleteAttachments(CancellationToken? cancellation, ICollection<AttachmentInfo> attachments, string info)
         {
             try
             {
-                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "DELETEATTACHMENTS", node.NodeAliasPath);
-
-                var attachments = AttachmentInfoProvider.GetAttachments(node.DocumentID, false)
-                    .ExceptVariants();
+                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "DELETEATTACHMENTS", info);
 
                 var index = 0;
 
