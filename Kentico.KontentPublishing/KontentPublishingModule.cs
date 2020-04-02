@@ -78,7 +78,7 @@ namespace Kentico.EMS.Kontent.Publishing
                 DocumentEvents.InsertNewCulture.After += PageUpdated;
                 DocumentEvents.Update.Before += PageUpdating;
                 DocumentEvents.Update.After += PageUpdated;
-                DocumentEvents.Delete.After += PageDeleted;
+                DocumentEvents.Delete.Before += PageDeleting;
                 DocumentEvents.Move.Before += PageMoving;
 
                 WorkflowEvents.Publish.Before += PagePublishing;
@@ -167,14 +167,11 @@ namespace Kentico.EMS.Kontent.Publishing
             var category = e.Object as DocumentCategoryInfo;
             if (category != null)
             {
-                RunSynchronization(async () =>
+                var node = DocumentHelper.GetDocument(category.DocumentID, _tree);
+                if ((node != null) && _pageSync.IsAtSynchronizedSite(node) && _pageSync.CanBePublished(node))
                 {
-                    var node = DocumentHelper.GetDocument(category.DocumentID, _tree);
-                    if ((node != null) && _pageSync.IsAtSynchronizedSite(node) && _pageSync.CanBePublished(node))
-                    {
-                        await _pageSync.SyncPage(null, node);
-                    }
-                });
+                    RunSynchronization(async () => await _pageSync.SyncPage(null, node));
+                }
             }
         }
 
@@ -243,24 +240,26 @@ namespace Kentico.EMS.Kontent.Publishing
             var attachment = e.Object as AttachmentInfo;
             if ((attachment != null) && _assetSync.IsAtSynchronizedSite(attachment))
             {
-                RunSynchronization(
-                    async () =>
-                    {
-                        // TODO - Remove when deleting referenced attachments with external ID is allowed
-                        var node = DocumentHelper.GetDocument(attachment.AttachmentDocumentID, _tree);
-                        if ((node != null) && (node.DocumentWorkflowStepID == 0) && _pageSync.CanBePublished(node))
+                var node = DocumentHelper.GetDocument(attachment.AttachmentDocumentID, _tree);
+                if (node != null)
+                {
+                    RunSynchronization(async () =>
                         {
-                            // We need to delete and recreate page when deleting attachment for a page without workflow, because asset can be deleted only when not referenced
-                            // Result is the same, but KC just wants it this way
-                            await _pageSync.DeletePage(null, node);
-                            await _assetSync.DeleteAttachment(attachment);
-                            await _pageSync.SyncPage(null, node);
-                            return;
-                        }
+                            // TODO - Remove when deleting referenced attachments with external ID is allowed
+                            if ((node.DocumentWorkflowStepID == 0) && _pageSync.CanBePublished(node))
+                            {
+                                // We need to delete and recreate page when deleting attachment for a page without workflow, because asset can be deleted only when not referenced
+                                // Result is the same, but KC just wants it this way
+                                await _pageSync.DeletePage(null, node);
+                                await _assetSync.DeleteAttachment(attachment);
+                                await _pageSync.SyncPage(null, node);
+                                return;
+                            }
 
-                        await _assetSync.DeleteAttachment(attachment);
-                    }
-                );
+                            await _assetSync.DeleteAttachment(attachment);
+                        }
+                    );
+                }
             }
         }
 
@@ -281,16 +280,19 @@ namespace Kentico.EMS.Kontent.Publishing
             var attachment = e.Object as AttachmentInfo;
             if ((attachment != null) && _assetSync.IsAtSynchronizedSite(attachment))
             {
-                RunSynchronization(async () =>
+                var node = DocumentHelper.GetDocument(attachment.AttachmentDocumentID, _tree);
+                if (node != null)
                 {
-                    await _assetSync.SyncAttachment(attachment);
-
-                    var node = DocumentHelper.GetDocument(attachment.AttachmentDocumentID, _tree);
-                    if ((node.DocumentWorkflowStepID == 0) && _pageSync.CanBePublished(node))
+                    RunSynchronization(async () =>
                     {
-                        await _pageSync.SyncPage(null, node);
-                    }
-                });
+                        await _assetSync.SyncAttachment(attachment);
+
+                        if ((node.DocumentWorkflowStepID == 0) && _pageSync.CanBePublished(node))
+                        {
+                            await _pageSync.SyncPage(null, node);
+                        }
+                    });
+                }
             }
         }
 
@@ -299,24 +301,28 @@ namespace Kentico.EMS.Kontent.Publishing
             var attachment = e.Object as AttachmentInfo;
             if ((attachment != null) && _assetSync.IsAtSynchronizedSite(attachment))
             {
-                RunSynchronization(async () =>
+                var node = DocumentHelper.GetDocument(attachment.AttachmentDocumentID, _tree);
+                if (node != null)
                 {
-                    // The attachment needs to be deleted because upsert doesn't allow updating file reference
-                    // TODO - Remove when updating referenced attachments with external ID is allowed
-                    var node = DocumentHelper.GetDocument(attachment.AttachmentDocumentID, _tree);
-                    if ((node.DocumentWorkflowStepID == 0) && _pageSync.CanBePublished(node))
-                    {
-                        // We need to delete and recreate page when deleting attachment for a page without workflow, because asset can be deleted only when not referenced
-                        // Result is the same, but KC just wants it this way
-                        await _pageSync.DeletePage(null, node);
-                        await _assetSync.DeleteAttachment(attachment);
-                        await _assetSync.SyncAttachment(attachment);
-                        await _pageSync.SyncPage(null, node);
-                        return;
-                    }
+                    RunSynchronization(async () =>
+                        {
+                            // The attachment needs to be deleted because upsert doesn't allow updating file reference
+                            // TODO - Remove when updating referenced attachments with external ID is allowed
+                            if ((node.DocumentWorkflowStepID == 0) && _pageSync.CanBePublished(node))
+                            {
+                                // We need to delete and recreate page when deleting attachment for a page without workflow, because asset can be deleted only when not referenced
+                                // Result is the same, but KC just wants it this way
+                                await _pageSync.DeletePage(null, node);
+                                await _assetSync.DeleteAttachment(attachment);
+                                await _assetSync.SyncAttachment(attachment);
+                                await _pageSync.SyncPage(null, node);
+                                return;
+                            }
 
-                    await _assetSync.SyncAttachment(attachment);
-                });
+                            await _assetSync.SyncAttachment(attachment);
+                        }
+                    );
+                }
             }
         }
 
@@ -325,14 +331,11 @@ namespace Kentico.EMS.Kontent.Publishing
             var attachment = e.Object as AttachmentInfo;
             if ((attachment != null) && _assetSync.IsAtSynchronizedSite(attachment))
             {
-                RunSynchronization(async () =>
+                var node = DocumentHelper.GetDocument(attachment.AttachmentDocumentID, _tree);
+                if ((node != null) && (node.DocumentWorkflowStepID == 0) && _pageSync.CanBePublished(node))
                 {
-                    var node = DocumentHelper.GetDocument(attachment.AttachmentDocumentID, _tree);
-                    if ((node.DocumentWorkflowStepID == 0) && _pageSync.CanBePublished(node))
-                    {
-                        await _pageSync.SyncPage(null, node);
-                    }
-                });
+                    RunSynchronization(async () => await _pageSync.SyncPage(null, node));
+                }
             }
         }
         
@@ -345,7 +348,13 @@ namespace Kentico.EMS.Kontent.Publishing
             var mediaLibrary = e.Object as MediaLibraryInfo;
             if ((mediaLibrary != null) && _assetSync.IsAtSynchronizedSite(mediaLibrary))
             {
-                RunSynchronization(async () => await _assetSync.DeleteAllMediaFiles(mediaLibrary));
+                var mediaFiles = MediaFileInfoProvider.GetMediaFiles()
+                    .WhereEquals("FileLibraryID", mediaLibrary.LibraryID)
+                    .BinaryData(false)
+                    .TypedResult
+                    .ToList();
+
+                RunSynchronization(async () => await _assetSync.DeleteMediaFiles(null, mediaFiles, mediaLibrary.LibraryDisplayName));
             }
         }
 
@@ -465,14 +474,20 @@ namespace Kentico.EMS.Kontent.Publishing
             }
         }
 
-        private void PageDeleted(object sender, DocumentEventArgs e)
+        private void PageDeleting(object sender, DocumentEventArgs e)
         {
             var node = e.Node;
 
             if (_pageSync.IsAtSynchronizedSite(node))
             {
+                var attachments = AttachmentInfoProvider.GetAttachments(node.DocumentID, false)
+                    .ExceptVariants()
+                    .TypedResult
+                    .ToList();
+
                 RunSynchronization(async () => {
-                    await _pageSync.DeletePageWithAllData(null, node);
+                    await _pageSync.DeletePage(null, node);
+                    await _assetSync.DeleteAttachments(null, attachments, node.NodeAliasPath);
                 });
             }
         }
@@ -497,12 +512,20 @@ namespace Kentico.EMS.Kontent.Publishing
                         .TypedResult
                         .ToList();
 
+                    var documentIds = subtree.Select(n => n.DocumentID).ToList();
+                    var attachments = AttachmentInfoProvider.GetAttachments()
+                        .WhereIn("AttachmentDocumentID", documentIds)
+                        .BinaryData(false)
+                        .ExceptVariants()
+                        .TypedResult
+                        .ToList();
+
                     RunSynchronization(async () =>
                     {
-                        foreach (var page in subtree)
-                        {
-                            await _pageSync.DeletePageWithAllData(null, page);
-                        }
+                        var info = node.NodeAliasPath + "%";
+
+                        await _pageSync.DeletePages(null, subtree, info);
+                        await _assetSync.DeleteAttachments(null, attachments, info);
                     });
                 }
                 else
