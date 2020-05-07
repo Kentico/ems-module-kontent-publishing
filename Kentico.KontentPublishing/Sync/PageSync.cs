@@ -264,6 +264,49 @@ namespace Kentico.EMS.Kontent.Publishing
             await ExecuteWithoutResponse(endpoint, HttpMethod.Put, payload);
         }
 
+        private List<object> GetRelationshipElements(TreeNode node)
+        {
+            var query = new DataQuery();
+
+            var nodeRelationshipsQuery = RelationshipInfoProvider.GetRelationships()
+                .WhereEquals("LeftNodeID", node.NodeID);
+
+            // Get all the relationships for the document and also empty records for every existing relationships that the document is not using to send a complete set of relationship elements
+            var allRelationshipsQuery = query
+                .From(
+@"
+(" + query.IncludeDataParameters(nodeRelationshipsQuery.Parameters, nodeRelationshipsQuery.QueryText) + @") R
+FULL OUTER JOIN CMS_RelationshipNameSite RNS ON R.RelationshipNameID = RNS.RelationshipNameID
+LEFT JOIN CMS_RelationshipName RN ON RNS.RelationshipNameID = RN.RelationshipNameID
+LEFT JOIN CMS_Tree T ON R.RightNodeID = T.NodeID
+"
+                )
+                .Columns("NodeGUID", "RelationshipGUID")
+                .WhereEqualsOrNull("RelationshipNameIsAdHoc", false)
+                .WhereEquals("RNS.SiteID", node.NodeSiteID)
+                .OrderBy("RelationshipOrder");
+
+            var relationshipElements = allRelationshipsQuery
+                .Result
+                .Tables[0]
+                .AsEnumerable()
+                .GroupBy(row => (Guid)row["RelationshipGUID"])
+                .Select(group => new {
+                    element = new
+                    {
+                        external_id = ContentTypeSync.GetFieldExternalId(ContentTypeSync.RELATED_PAGES_GUID, group.Key)
+                    },
+                    value = (object)group
+                        .Where(row => row["NodeGUID"] != DBNull.Value)
+                        .Select(row => new { external_id = GetPageExternalId((Guid)row["NodeGUID"]) })
+                        .ToList()
+                })
+                .Cast<object>()
+                .ToList();
+
+            return relationshipElements;
+        }
+
         private async Task UpsertVariant(TreeNode node)
         {
             if (node == null)
@@ -318,39 +361,7 @@ namespace Kentico.EMS.Kontent.Publishing
                 }).ToList()
             };
 
-            var siteId = SiteInfoProvider.GetSiteID(Settings.Sitename);
-
-            var relationshipsQuery = new DataQuery()
-                .From(
-@"
-CMS_Relationship R
-LEFT JOIN CMS_Tree T ON R.RightNodeID = NodeID
-FULL OUTER JOIN CMS_RelationshipNameSite RNS ON R.RelationshipNameID = RNS.RelationshipNameID
-LEFT JOIN CMS_RelationshipName RN ON RNS.RelationshipNameID = RNS.RelationshipNameID
-"
-                )
-                .Columns("NodeGUID", "RelationshipGUID")
-                .WhereEqualsOrNull("LeftNodeID", node.NodeID)
-                .WhereEqualsOrNull("RelationshipNameIsAdHoc", false)
-                .WhereEquals("RNS.SiteID", siteId)
-                .OrderBy("RelationshipOrder");
-
-            var relationshipElements = relationshipsQuery
-                .Result
-                .Tables[0]
-                .AsEnumerable()
-                .GroupBy(row => (Guid)row["RelationshipGUID"])
-                .Select(group => new {
-                    element = new
-                    {
-                        external_id = ContentTypeSync.GetFieldExternalId(ContentTypeSync.RELATED_PAGES_GUID, group.Key)
-                    },
-                    value = (object)group
-                        .Where(row => row["NodeGUID"] != DBNull.Value)
-                        .Select(row => new { external_id = GetPageExternalId((Guid)row["NodeGUID"]) })
-                        .ToList()
-                })
-                .ToList();
+            var relationshipElements = GetRelationshipElements(node);
 
             var payload = new
             {
@@ -453,8 +464,10 @@ LEFT JOIN CMS_RelationshipName RN ON RNS.RelationshipNameID = RNS.RelationshipNa
         {
             if (cancellation?.IsCancellationRequested == true)
             {
-                await _assetSync.SyncAllAttachments(cancellation, node);
+                return;
             }
+
+            await _assetSync.SyncAllAttachments(cancellation, node);
             await SyncPage(cancellation, node);
         }
 
