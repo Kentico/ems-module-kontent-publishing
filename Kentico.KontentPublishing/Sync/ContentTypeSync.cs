@@ -476,16 +476,20 @@ namespace Kentico.EMS.Kontent.Publishing
                 var field = item as FormFieldInfo;
                 if (field != null)
                 {
+                    var isRequired = !field.AllowEmpty &&
+                        // Exception - CM-13044 File field cannot be required because when a new document under workflow is created, it creates a document which appears published for a moment
+                        // but the attachment is not present at that time so publishing of such document would fail immediately
+                        (field.DataType != FieldDataType.File) &&
+                        // Exception - Allow empty value for root document name
+                        ((field.Name.ToLowerInvariant() != "documentname") || (contentType.ClassName.ToLowerInvariant() != "cms.root"));
+
                     var element = new
                     {
                         external_id = GetFieldExternalId(contentType.ClassGUID, field.Guid),
                         name = GetElementName(field).LimitedTo(ELEMENT_MAXLENGTH),
                         codename = field.Name.ToLower().LimitedTo(ELEMENT_MAXLENGTH),
                         guidelines = GetElementGuidelines(field),
-                        is_required =
-                            !field.AllowEmpty &&
-                            // Exception - Allow empty value for root document name
-                            ((field.Name.ToLowerInvariant() != "documentname") || (contentType.ClassName.ToLowerInvariant() != "cms.root")),
+                        is_required = isRequired,
                         type = GetElementType(field.DataType),
                         options = (field.DataType == FieldDataType.Binary)
                             ? new[] {

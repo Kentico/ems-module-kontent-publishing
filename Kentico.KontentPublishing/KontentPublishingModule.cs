@@ -537,6 +537,7 @@ namespace Kentico.EMS.Kontent.Publishing
                             .OnSite(node.NodeSiteName)
                             .Path(node.NodeAliasPath, PathTypeEnum.Section)
                             .AllCultures()
+                            .WithCoupledColumns()
                             .TypedResult
                             .ToList();
 
