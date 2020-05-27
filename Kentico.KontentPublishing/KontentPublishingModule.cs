@@ -21,15 +21,13 @@ namespace Kentico.EMS.Kontent.Publishing
 
         public const string MODULE_NAME = "Kentico.KontentPublishing";
 
-        private ContentTypeSync _contentTypeSync;
-        private PageSync _pageSync;
-        private AssetSync _assetSync;
-        private TaxonomySync _taxonomySync;
-        private LanguageSync _languageSync;
+        private readonly ContentTypeSync _contentTypeSync;
+        private readonly PageSync _pageSync;
+        private readonly AssetSync _assetSync;
+        private readonly TaxonomySync _taxonomySync;
+        private readonly LanguageSync _languageSync;
 
-        private TreeProvider _tree = new TreeProvider();
-
-        private SyncSettings _settings;
+        private readonly SyncSettings _settings;
 
         public KontentPublishingModule() : base(MODULE_NAME)
         {
@@ -41,7 +39,7 @@ namespace Kentico.EMS.Kontent.Publishing
                 _assetSync = new AssetSync(_settings);
                 _languageSync = new LanguageSync(_settings);
                 _pageSync = new PageSync(_settings, _assetSync);
-                _contentTypeSync = new ContentTypeSync(_settings, _pageSync);
+                _contentTypeSync = new ContentTypeSync(_settings);
                 _taxonomySync = new TaxonomySync(_settings);
             }
         }
@@ -121,7 +119,7 @@ namespace Kentico.EMS.Kontent.Publishing
             );
         }
 
-        public bool isConfigurationValid()
+        public bool IsConfigurationValid()
         {
             return _settings.IsValid();
         }
@@ -132,8 +130,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
         private void CategoryCreated(object sender, ObjectEventArgs e)
         {
-            var category = e.Object as CategoryInfo;
-            if ((category != null) && _taxonomySync.IsAtSynchronizedSite(category))
+            if ((e.Object is CategoryInfo category) && _taxonomySync.IsAtSynchronizedSite(category))
             {
                 RunSynchronization(async () => await _taxonomySync.SyncCategories());
             }
@@ -141,8 +138,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
         private void CategoryDeleted(object sender, ObjectEventArgs e)
         {
-            var category = e.Object as CategoryInfo;
-            if ((category != null) && _taxonomySync.IsAtSynchronizedSite(category))
+            if ((e.Object is CategoryInfo category) && _taxonomySync.IsAtSynchronizedSite(category))
             {
                 RunSynchronization(async () => await _taxonomySync.SyncCategories());
             }
@@ -150,8 +146,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
         private void CategoryUpdating(object sender, ObjectEventArgs e)
         {
-            var category = e.Object as CategoryInfo;
-            if ((category != null) && _taxonomySync.IsAtSynchronizedSite(category))
+            if ((e.Object is CategoryInfo category) && _taxonomySync.IsAtSynchronizedSite(category))
             {
                 if (category.AnyItemChanged(TaxonomySync.UsedCategoryColumns))
                 {
@@ -164,13 +159,12 @@ namespace Kentico.EMS.Kontent.Publishing
 
         private void CategoryUpdated(object sender, ObjectEventArgs e)
         {
-            var category = e.Object as DocumentCategoryInfo;
-            if (category != null)
+            if (e.Object is DocumentCategoryInfo category)
             {
-                var node = DocumentHelper.GetDocument(category.DocumentID, _tree);
+                var node = _pageSync.GetSourceDocument(category.DocumentID);
                 if ((node != null) && _pageSync.IsAtSynchronizedSite(node) && _pageSync.CanBePublished(node))
                 {
-                    RunSynchronization(async () => await _pageSync.SyncPage(null, node));
+                    RunSynchronization(async () => await _pageSync.SyncPage(node));
                 }
             }
         }
@@ -181,22 +175,20 @@ namespace Kentico.EMS.Kontent.Publishing
 
         private void RelationshipNameCreated(object sender, ObjectEventArgs e)
         {
-            var relationshipName = e.Object as RelationshipNameInfo;
-            if ((relationshipName != null) && _contentTypeSync.IsAtSynchronizedSite(relationshipName))
+            if ((e.Object is RelationshipNameInfo relationshipName) && _contentTypeSync.IsAtSynchronizedSite(relationshipName))
             {
-                RunSynchronization(async () => await _contentTypeSync.SyncRelationships(null));
+                RunSynchronization(async () => await _contentTypeSync.SyncRelationships());
             }
         }
 
         private void RelationshipNameUpdating(object sender, ObjectEventArgs e)
         {
-            var relationshipName = e.Object as RelationshipNameInfo;
-            if ((relationshipName != null) && _contentTypeSync.IsAtSynchronizedSite(relationshipName))
+            if ((e.Object is RelationshipNameInfo relationshipName) && _contentTypeSync.IsAtSynchronizedSite(relationshipName))
             {
                 if (relationshipName.AnyItemChanged(ContentTypeSync.UsedRelationshipNameColumns))
                 {
                     e.CallWhenFinished(
-                        () => RunSynchronization(async () => await _contentTypeSync.SyncRelationships(null))
+                        () => RunSynchronization(async () => await _contentTypeSync.SyncRelationships())
                     );
                 }
             }
@@ -204,30 +196,27 @@ namespace Kentico.EMS.Kontent.Publishing
 
         private void RelationshipsNameDeleting(object sender, ObjectEventArgs e)
         {
-            var relationshipName = e.Object as RelationshipNameInfo;
-            if ((relationshipName != null) && _contentTypeSync.IsAtSynchronizedSite(relationshipName))
+            if ((e.Object is RelationshipNameInfo relationshipName) && _contentTypeSync.IsAtSynchronizedSite(relationshipName))
             {
                 e.CallWhenFinished(
-                    () => RunSynchronization(async () => await _contentTypeSync.SyncRelationships(null))
+                    () => RunSynchronization(async () => await _contentTypeSync.SyncRelationships())
                 );
             }
         }
 
         private void RelationshipNameSiteChanged(object sender, ObjectEventArgs e)
         {
-            var relationshipNameSite = e.Object as RelationshipNameSiteInfo;
-            if ((relationshipNameSite != null) && _contentTypeSync.IsSynchronizedSite(relationshipNameSite.SiteID))
+            if ((e.Object is RelationshipNameSiteInfo relationshipNameSite) && _contentTypeSync.IsSynchronizedSite(relationshipNameSite.SiteID))
             {
-                RunSynchronization(async () => await _contentTypeSync.SyncRelationships(null));
+                RunSynchronization(async () => await _contentTypeSync.SyncRelationships());
             }
         }
 
         private void RelationshipUpdated(object sender, ObjectEventArgs e)
         {
-            var relationship = e.Object as RelationshipInfo;
-            if (relationship != null)
+            if (e.Object is RelationshipInfo relationship)
             {
-                RunSynchronization(async () => await _pageSync.SyncAllCultures(null, relationship.LeftNodeId));
+                RunSynchronization(async () => await _pageSync.SyncAllCultures(relationship.LeftNodeId));
             }
         }
 
@@ -237,10 +226,9 @@ namespace Kentico.EMS.Kontent.Publishing
 
         private void AttachmentDeleted(object sender, ObjectEventArgs e)
         {
-            var attachment = e.Object as AttachmentInfo;
-            if ((attachment != null) && _assetSync.IsAtSynchronizedSite(attachment))
+            if ((e.Object is AttachmentInfo attachment) && _assetSync.IsAtSynchronizedSite(attachment))
             {
-                var node = DocumentHelper.GetDocument(attachment.AttachmentDocumentID, _tree);
+                var node = _pageSync.GetSourceDocument(attachment.AttachmentDocumentID);
                 if (node != null)
                 {
                     RunSynchronization(async () =>
@@ -250,9 +238,9 @@ namespace Kentico.EMS.Kontent.Publishing
                             {
                                 // We need to delete and recreate page when deleting attachment for a page without workflow, because asset can be deleted only when not referenced
                                 // Result is the same, but KC just wants it this way
-                                await _pageSync.DeletePage(null, node);
+                                await _pageSync.DeletePage(node);
                                 await _assetSync.DeleteAttachment(attachment);
-                                await _pageSync.SyncPage(null, node);
+                                await _pageSync.SyncPage(node);
                                 return;
                             }
 
@@ -265,8 +253,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
         private void TemporaryAttachmentUpdated(object sender, ObjectEventArgs e)
         {
-            var attachment = e.Object as AttachmentInfo;
-            if ((attachment != null) && _assetSync.IsAtSynchronizedSite(attachment))
+            if ((e.Object is AttachmentInfo attachment) && _assetSync.IsAtSynchronizedSite(attachment))
             {
                 RunSynchronization(async () =>
                 {
@@ -277,10 +264,9 @@ namespace Kentico.EMS.Kontent.Publishing
 
         private void AttachmentInserted(object sender, ObjectEventArgs e)
         {
-            var attachment = e.Object as AttachmentInfo;
-            if ((attachment != null) && _assetSync.IsAtSynchronizedSite(attachment))
+            if ((e.Object is AttachmentInfo attachment) && _assetSync.IsAtSynchronizedSite(attachment))
             {
-                var node = DocumentHelper.GetDocument(attachment.AttachmentDocumentID, _tree);
+                var node = _pageSync.GetSourceDocument(attachment.AttachmentDocumentID);
                 if (node != null)
                 {
                     RunSynchronization(async () =>
@@ -289,7 +275,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
                         if ((node.DocumentWorkflowStepID == 0) && _pageSync.CanBePublished(node))
                         {
-                            await _pageSync.SyncPage(null, node);
+                            await _pageSync.SyncPage(node);
                         }
                     });
                 }
@@ -298,10 +284,9 @@ namespace Kentico.EMS.Kontent.Publishing
 
         private void AttachmentUpdated(object sender, ObjectEventArgs e)
         {
-            var attachment = e.Object as AttachmentInfo;
-            if ((attachment != null) && _assetSync.IsAtSynchronizedSite(attachment))
+            if ((e.Object is AttachmentInfo attachment) && _assetSync.IsAtSynchronizedSite(attachment))
             {
-                var node = DocumentHelper.GetDocument(attachment.AttachmentDocumentID, _tree);
+                var node = _pageSync.GetSourceDocument(attachment.AttachmentDocumentID);
                 if (node != null)
                 {
                     RunSynchronization(async () =>
@@ -312,10 +297,10 @@ namespace Kentico.EMS.Kontent.Publishing
                             {
                                 // We need to delete and recreate page when deleting attachment for a page without workflow, because asset can be deleted only when not referenced
                                 // Result is the same, but KC just wants it this way
-                                await _pageSync.DeletePage(null, node);
+                                await _pageSync.DeletePage(node);
                                 await _assetSync.DeleteAttachment(attachment);
                                 await _assetSync.SyncAttachment(attachment);
-                                await _pageSync.SyncPage(null, node);
+                                await _pageSync.SyncPage(node);
                                 return;
                             }
 
@@ -328,13 +313,12 @@ namespace Kentico.EMS.Kontent.Publishing
 
         private void AttachmentChangedOrder(object sender, ObjectChangeOrderEventArgs e)
         {
-            var attachment = e.Object as AttachmentInfo;
-            if ((attachment != null) && _assetSync.IsAtSynchronizedSite(attachment))
+            if ((e.Object is AttachmentInfo attachment) && _assetSync.IsAtSynchronizedSite(attachment))
             {
-                var node = DocumentHelper.GetDocument(attachment.AttachmentDocumentID, _tree);
+                var node = _pageSync.GetSourceDocument(attachment.AttachmentDocumentID);
                 if ((node != null) && (node.DocumentWorkflowStepID == 0) && _pageSync.CanBePublished(node))
                 {
-                    RunSynchronization(async () => await _pageSync.SyncPage(null, node));
+                    RunSynchronization(async () => await _pageSync.SyncPage(node));
                 }
             }
         }
@@ -345,8 +329,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
         private void MediaLibraryDeleting(object sender, ObjectEventArgs e)
         {
-            var mediaLibrary = e.Object as MediaLibraryInfo;
-            if ((mediaLibrary != null) && _assetSync.IsAtSynchronizedSite(mediaLibrary))
+            if ((e.Object is MediaLibraryInfo mediaLibrary) && _assetSync.IsAtSynchronizedSite(mediaLibrary))
             {
                 var mediaFiles = MediaFileInfoProvider.GetMediaFiles()
                     .WhereEquals("FileLibraryID", mediaLibrary.LibraryID)
@@ -360,8 +343,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
         private void MediaFileDeleted(object sender, ObjectEventArgs e)
         {
-            var mediaFile = e.Object as MediaFileInfo;
-            if ((mediaFile != null) && _assetSync.IsAtSynchronizedSite(mediaFile))
+            if ((e.Object is MediaFileInfo mediaFile) && _assetSync.IsAtSynchronizedSite(mediaFile))
             {
                 RunSynchronization(async () => await _assetSync.DeleteMediaFile(mediaFile));
             }
@@ -369,8 +351,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
         private void MediaFileUpdated(object sender, ObjectEventArgs e)
         {
-            var mediaFile = e.Object as MediaFileInfo;
-            if ((mediaFile != null) && _assetSync.IsAtSynchronizedSite(mediaFile))
+            if ((e.Object is MediaFileInfo mediaFile) && _assetSync.IsAtSynchronizedSite(mediaFile))
             {
                 RunSynchronization(async () => await _assetSync.SyncMediaFile(mediaFile));
             }
@@ -382,8 +363,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
         private void PageTypeCreated(object sender, ObjectEventArgs e)
         {
-            var contentType = e.Object as DocumentTypeInfo;
-            if ((contentType != null) && _contentTypeSync.IsAtSynchronizedSite(contentType))
+            if ((e.Object is DocumentTypeInfo contentType) && _contentTypeSync.IsAtSynchronizedSite(contentType))
             {
                 RunSynchronization(async () => await _contentTypeSync.CreateContentType(contentType));
             }
@@ -391,8 +371,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
         private void PageTypeDeleted(object sender, ObjectEventArgs e)
         {
-            var contentType = e.Object as DocumentTypeInfo;
-            if ((contentType != null) && _contentTypeSync.IsAtSynchronizedSite(contentType))
+            if ((e.Object is DocumentTypeInfo contentType) && _contentTypeSync.IsAtSynchronizedSite(contentType))
             {
                 RunSynchronization(async () => await _contentTypeSync.DeleteContentType(contentType));
             }
@@ -400,13 +379,12 @@ namespace Kentico.EMS.Kontent.Publishing
 
         private void PageTypeUpdating(object sender, ObjectEventArgs e)
         {
-            var contentType = e.Object as DocumentTypeInfo;
-            if ((contentType != null) && _contentTypeSync.IsAtSynchronizedSite(contentType))
+            if ((e.Object is DocumentTypeInfo contentType) && _contentTypeSync.IsAtSynchronizedSite(contentType))
             {
                 if (contentType.AnyItemChanged(ContentTypeSync.UsedPageTypeColumns))
                 {
                     e.CallWhenFinished(
-                        () => RunSynchronization(async () => await _contentTypeSync.SyncContentType(null, contentType))
+                        () => RunSynchronization(async () => await _contentTypeSync.SyncContentType(contentType))
                     );
                 }
             }
@@ -414,13 +392,12 @@ namespace Kentico.EMS.Kontent.Publishing
 
         private void ClassSiteChanged(object sender, ObjectEventArgs e)
         {
-            var classSite = e.Object as ClassSiteInfo;
-            if ((classSite != null) && _contentTypeSync.IsSynchronizedSite(classSite.SiteID))
+            if ((e.Object is ClassSiteInfo classSite) && _contentTypeSync.IsSynchronizedSite(classSite.SiteID))
             {
                 var contentType = DataClassInfoProvider.GetDataClassInfo(classSite.ClassID);
                 if (contentType?.ClassIsDocumentType == true)
                 {
-                    RunSynchronization(async () => await _contentTypeSync.SyncContentType(null, contentType));
+                    RunSynchronization(async () => await _contentTypeSync.SyncContentType(contentType));
                 }
             }
         }
@@ -438,7 +415,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
             if (_pageSync.IsAtSynchronizedSite(node))
             {
-                RunSynchronization(async () => await _pageSync.DeletePage(null, node));
+                RunSynchronization(async () => await _pageSync.DeletePage(node));
             }
         }
 
@@ -459,7 +436,7 @@ namespace Kentico.EMS.Kontent.Publishing
                 // Unpublished
                 e.CallWhenFinished(() =>
                 {
-                    RunSynchronization(async () => await _pageSync.DeletePage(null, node));
+                    RunSynchronization(async () => await _pageSync.DeletePage(node));
                 });
             }
         }
@@ -470,7 +447,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
             if (_pageSync.IsAtSynchronizedSite(node))
             {
-                RunSynchronization(async () => await _pageSync.SyncPage(null, node));
+                RunSynchronization(async () => await _pageSync.SyncPage(node));
             }
         }
 
@@ -486,7 +463,7 @@ namespace Kentico.EMS.Kontent.Publishing
                     .ToList();
 
                 RunSynchronization(async () => {
-                    await _pageSync.DeletePage(null, node);
+                    await _pageSync.DeletePage(node);
                     await _assetSync.DeleteAttachments(null, attachments, node.NodeAliasPath);
                 });
             }
@@ -505,7 +482,7 @@ namespace Kentico.EMS.Kontent.Publishing
                 if (!targetIsAtSynchronizedSite)
                 {
                     // Delete subtree when moving away from synchronized site 
-                    var subtree = DocumentHelper.GetDocuments()
+                    var subtree = _pageSync.GetSourceDocuments()
                         .OnSite(node.NodeSiteName)
                         .Path(node.NodeAliasPath, PathTypeEnum.Section)
                         .AllCultures()
@@ -533,7 +510,7 @@ namespace Kentico.EMS.Kontent.Publishing
                     // Sync subtree when moving to synchronized site 
                     e.CallWhenFinished(() =>
                     {
-                        var subtree = DocumentHelper.GetDocuments()
+                        var subtree = _pageSync.GetSourceDocuments()
                             .OnSite(node.NodeSiteName)
                             .Path(node.NodeAliasPath, PathTypeEnum.Section)
                             .AllCultures()
@@ -562,14 +539,14 @@ namespace Kentico.EMS.Kontent.Publishing
             await _assetSync.SyncAllMediaLibraries(cancellation);
         }
 
-        public async Task SyncRelationships(CancellationToken? cancellation)
+        public async Task SyncRelationships()
         {
-            await _contentTypeSync.SyncRelationships(cancellation);
+            await _contentTypeSync.SyncRelationships();
         }
 
-        public async Task SyncCategories(CancellationToken? cancellation)
+        public async Task SyncCategories()
         {
-            await _taxonomySync.SyncCategories(cancellation);
+            await _taxonomySync.SyncCategories();
         }
 
         public async Task SyncContentTypes(CancellationToken? cancellation)
@@ -582,9 +559,9 @@ namespace Kentico.EMS.Kontent.Publishing
             await _assetSync.SyncAllAttachments(cancellation);
         }
 
-        public async Task SyncLanguages(CancellationToken? cancellation)
+        public async Task SyncLanguages()
         {
-            await _languageSync.SyncCultures(cancellation);
+            await _languageSync.SyncCultures();
         }
 
         public async Task SyncPages(CancellationToken? cancellation)
@@ -595,11 +572,11 @@ namespace Kentico.EMS.Kontent.Publishing
         public async Task SyncAll(CancellationToken? cancellation)
         {
             await SyncMediaLibraries(cancellation);
-            await SyncRelationships(cancellation);
-            await SyncCategories(cancellation);
+            await SyncRelationships();
+            await SyncCategories();
             await SyncContentTypes(cancellation);
             await SyncAttachments(cancellation);
-            await SyncLanguages(cancellation);
+            await SyncLanguages();
             await SyncPages(cancellation);
         }
 

@@ -19,9 +19,9 @@ namespace Kentico.EMS.Kontent.Publishing
         protected static HttpMethod PATCH = new HttpMethod("PATCH");
 
         private const string ApiRoot = "https://manage.kontent.ai/v2";
-        private SyncSettings _settings;
 
-        HttpClient _client = new HttpClient();
+        private readonly SyncSettings _settings;
+        private readonly HttpClient _client = new HttpClient();
                
         public SyncSettings Settings
         {
@@ -44,23 +44,21 @@ namespace Kentico.EMS.Kontent.Publishing
         public const int MAX_RETRIES = 5;
 
         // Only HTTP status codes are handled with retries, not exceptions.
-        private IAsyncPolicy<HttpResponseMessage> _retryPolicy = Policy
+        private readonly IAsyncPolicy<HttpResponseMessage> _retryPolicy = Policy
             .HandleResult<HttpResponseMessage>(result => Enum.IsDefined(typeof(RetryHttpCode), (RetryHttpCode)result.StatusCode))
             .WaitAndRetryAsync(
                 MAX_RETRIES,
                 retryAttempt => TimeSpan.FromMilliseconds(Math.Pow(2, retryAttempt) * 100)
             );
 
-        private JsonSerializerSettings _serializeSettings = new JsonSerializerSettings
+        private readonly JsonSerializerSettings _serializeSettings = new JsonSerializerSettings
         {
             NullValueHandling = NullValueHandling.Ignore,
-            //Converters = new List<JsonConverter> { new DecimalObjectConverter() }
         };
 
-        private JsonSerializerSettings _serializeSettingsKeepNull = new JsonSerializerSettings
+        private readonly JsonSerializerSettings _serializeSettingsKeepNull = new JsonSerializerSettings
         {
             NullValueHandling = NullValueHandling.Include,
-            //Converters = new List<JsonConverter> { new DecimalObjectConverter() }
         };
 
 

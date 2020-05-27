@@ -3,7 +3,7 @@ using System;
 
 namespace Kentico.EMS.Kontent.Publishing
 {
-    public class SyncLog
+    public static class SyncLog
     {
         public static Exception lastLoggedException;
         public static LogContext CurrentLog;

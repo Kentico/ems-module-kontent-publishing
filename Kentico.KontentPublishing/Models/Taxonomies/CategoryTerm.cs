@@ -1,15 +1,20 @@
-﻿using System.Collections.Generic;
+﻿using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace Kentico.EMS.Kontent.Publishing
 {
     internal class CategoryTerm
     {
-        public string name { get; set; }
+        [JsonProperty("name")]
+        public string Name { get; set; }
 
-        public string codename { get; set; }
+        [JsonProperty("codename")]
+        public string Codename { get; set; }
 
-        public string external_id { get; set; }
+        [JsonProperty("external_id")]
+        public string ExternalId { get; set; }
 
-        public IEnumerable<CategoryTerm> terms { get; set; }
+        [JsonProperty("terms")]
+        public IEnumerable<CategoryTerm> Terms { get; set; }
     }
 }

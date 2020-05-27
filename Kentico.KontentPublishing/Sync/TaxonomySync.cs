@@ -60,13 +60,13 @@ namespace Kentico.EMS.Kontent.Publishing
             return category.CategorySiteID == siteId;
         }
         
-        public async Task SyncCategories(CancellationToken? cancellation = null)
+        public async Task SyncCategories()
         {
             try
             {
                 SyncLog.Log("Synchronizing categories");
 
-                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "UPSERTCATEGORIESTAXONOMY");
+                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "SYNCCATEGORIES");
 
                 // TODO - consider patch
                 await DeleteCategoriesTaxonomy();
@@ -74,7 +74,7 @@ namespace Kentico.EMS.Kontent.Publishing
             }
             catch (Exception ex)
             {
-                SyncLog.LogException("KenticoKontentPublishing", "UPSERTCATEGORIESTAXONOMY", ex);
+                SyncLog.LogException("KenticoKontentPublishing", "SYNCCATEGORIES", ex);
                 throw;
             }
         }
@@ -113,10 +113,10 @@ namespace Kentico.EMS.Kontent.Publishing
         {
             return categories.Where(c => c.CategoryParentID == parentId).Select(category => new CategoryTerm()
             {
-                name = category.CategoryDisplayName.LimitedTo(TAXONOMY_NAME_MAXLENGTH),
-                codename = category.CategoryName.ToLower().LimitedTo(TAXONOMY_CODENAME_MAXLENGTH),
-                external_id = GetCategoryTermExternalId(category.CategoryGUID),
-                terms = GetCategoryTerms(categories, category.CategoryID)
+                Name = category.CategoryDisplayName.LimitedTo(TAXONOMY_NAME_MAXLENGTH),
+                Codename = category.CategoryName.ToLower().LimitedTo(TAXONOMY_CODENAME_MAXLENGTH),
+                ExternalId = GetCategoryTermExternalId(category.CategoryGUID),
+                Terms = GetCategoryTerms(categories, category.CategoryID)
             }).ToList();
         }
             
