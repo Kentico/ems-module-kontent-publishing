@@ -64,13 +64,13 @@ namespace Kentico.EMS.Kontent.Publishing
             return languages;
         }
 
-        public async Task SyncCultures(CancellationToken? cancellation = null)
+        public async Task SyncCultures()
         {
             try
             {
                 SyncLog.Log("Synchronizing cultures");
 
-                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "ENSURECULTURES");
+                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "SYNCCULTURES");
 
                 var existingLanguages = await GetAllLanguages();
                 var cultures = CultureSiteInfoProvider.GetSiteCultures(Settings.Sitename).ToList();
@@ -101,7 +101,7 @@ namespace Kentico.EMS.Kontent.Publishing
             }
             catch (Exception ex)
             {
-                SyncLog.LogException("KenticoKontentPublishing", "ENSURECULTURES", ex);
+                SyncLog.LogException("KenticoKontentPublishing", "SYNCCULTURES", ex);
                 throw;
             }
         }
@@ -139,7 +139,7 @@ namespace Kentico.EMS.Kontent.Publishing
             }
             catch (Exception ex)
             {
-                SyncLog.LogException("KenticoKontentPublishing", "CREATECULTURE", ex);
+                SyncLog.LogException("KenticoKontentPublishing", "DEACTIVATELANGUAGE", ex);
                 throw;
             }
         }
@@ -148,7 +148,7 @@ namespace Kentico.EMS.Kontent.Publishing
         {
             try
             {
-                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "PATCHDEFAULTCULTURE");
+                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "PATCHDEFAULTLANGUAGE");
 
                 var endpoint = $"/languages/{Guid.Empty}";
 
@@ -171,7 +171,7 @@ namespace Kentico.EMS.Kontent.Publishing
             }
             catch (Exception ex)
             {
-                SyncLog.LogException("KenticoKontentPublishing", "CREATECULTURE", ex);
+                SyncLog.LogException("KenticoKontentPublishing", "PATCHDEFAULTLANGUAGE", ex);
                 throw;
             }
         }
@@ -180,7 +180,7 @@ namespace Kentico.EMS.Kontent.Publishing
         {
             try
             {
-                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "PATCHCULTURE", $"{culture.CultureName} ({culture.CultureCode})");
+                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "PATCHLANGUAGE", $"{culture.CultureName} ({culture.CultureCode})");
 
                 var externalId = GetLanguageExternalId(culture.CultureGUID);
                 var endpoint = $"/languages/external-id/{externalId}";
@@ -210,7 +210,7 @@ namespace Kentico.EMS.Kontent.Publishing
             }
             catch (Exception ex)
             {
-                SyncLog.LogException("KenticoKontentPublishing", "CREATECULTURE", ex);
+                SyncLog.LogException("KenticoKontentPublishing", "PATCHLANGUAGE", ex);
                 throw;
             }
         }
@@ -219,7 +219,7 @@ namespace Kentico.EMS.Kontent.Publishing
         {
             try
             {
-                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "CREATECULTURE", $"{culture.CultureName} ({culture.CultureCode})");
+                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "CREATELANGUAGE", $"{culture.CultureName} ({culture.CultureCode})");
 
                 var externalId = GetLanguageExternalId(culture.CultureGUID);
                 var endpoint = $"/languages";
@@ -231,6 +231,7 @@ namespace Kentico.EMS.Kontent.Publishing
                     external_id = externalId,
                     is_active = true,
                     // Default language is always empty, and no fallback is used as a result
+                    // If Kontent supported language without fallback, this needs to be updated
                     // fallback_language = new { id = Guid.Empty }
                 };
 
@@ -238,7 +239,7 @@ namespace Kentico.EMS.Kontent.Publishing
             }
             catch (Exception ex)
             {
-                SyncLog.LogException("KenticoKontentPublishing", "CREATECULTURE", ex);
+                SyncLog.LogException("KenticoKontentPublishing", "CREATELANGUAGE", ex);
                 throw;
             }
         }

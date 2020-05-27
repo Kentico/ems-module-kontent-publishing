@@ -37,7 +37,7 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync : GlobalAdm
             Text = "Kentico Kontent Publishing",
         });
 
-        if (!GetModule().isConfigurationValid())
+        if (!GetModule().IsConfigurationValid())
         {
             plcSync.Visible = false;
             ShowWarning("Kentico Kontent Publishing configuration is invalid, check the configuration.");
@@ -121,7 +121,6 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync : GlobalAdm
                 catch (Exception ex)
                 {
                     SyncLog.LogException("KenticoKontentPublishing", "UNHANDLEDERROR", ex);
-                    SyncLog.Log(ex.Message);
                     ctlAsyncLog.ProcessData.Error = ex.Message;
                 }
             }).Wait(),
@@ -136,12 +135,12 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync : GlobalAdm
 
     private async Task SyncRelationships(CancellationToken cancellation)
     {
-        await GetModule()?.SyncRelationships(cancellation);
+        await GetModule()?.SyncRelationships();
     }
 
     private async Task SyncCategories(CancellationToken cancellation)
     {
-        await GetModule()?.SyncCategories(cancellation);
+        await GetModule()?.SyncCategories();
     }
 
     private async Task SyncMediaLibraries(CancellationToken cancellation)
@@ -166,7 +165,7 @@ public partial class CMSModules_Kentico_KontentPublishing_Pages_Sync : GlobalAdm
 
     private async Task SyncLanguages(CancellationToken cancellation)
     {
-        await GetModule()?.SyncLanguages(cancellation);
+        await GetModule()?.SyncLanguages();
     }
 
     private async Task DeleteItems(CancellationToken cancellation)

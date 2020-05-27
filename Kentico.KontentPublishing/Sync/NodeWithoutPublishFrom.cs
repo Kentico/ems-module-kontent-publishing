@@ -7,9 +7,8 @@ namespace Kentico.EMS.Kontent.Publishing
 {
     internal class NodeWithoutPublishFrom : IDataContainer
     {
-        private TreeNode _node;
-
-
+        private readonly TreeNode _node;
+        
         public NodeWithoutPublishFrom(TreeNode node)
         {
             _node = node;
@@ -30,8 +29,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
         public object GetValue(string columnName)
         {
-            object value;
-            TryGetValue(columnName, out value);
+            TryGetValue(columnName, out object value);
 
             return value;
         }

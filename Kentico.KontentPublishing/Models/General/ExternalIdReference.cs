@@ -1,7 +1,10 @@
-﻿namespace Kentico.EMS.Kontent.Publishing
+﻿using Newtonsoft.Json;
+
+namespace Kentico.EMS.Kontent.Publishing
 {
     internal class ExternalIdReference
     {
-        public string external_id { get; set; }
+        [JsonProperty("external_id")]
+        public string ExternalId { get; set; }
     }
 }

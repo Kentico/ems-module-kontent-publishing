@@ -1,7 +1,13 @@
-﻿namespace Kentico.EMS.Kontent.Publishing
+﻿using Newtonsoft.Json;
+
+namespace Kentico.EMS.Kontent.Publishing
 {
     internal class MultipleChoiceElementOption
     {
-        public string name { get; set; }
+        [JsonProperty("name")]
+        public string Name { get; set; }
+
+        [JsonProperty("codename")]
+        public string Codename { get; set; }
     }
 }

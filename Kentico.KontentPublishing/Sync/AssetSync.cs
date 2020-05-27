@@ -44,7 +44,15 @@ namespace Kentico.EMS.Kontent.Publishing
 
         #region "Assets"
 
-        public async Task<string> GetAssetUrl(string type, Guid guid, string fileName)
+        private string GetShortenedFileName(string fullFileName)
+        {
+            var name = Path.GetFileNameWithoutExtension(fullFileName);
+            var extension = Path.GetExtension(fullFileName);
+
+            return name.LimitedTo(ASSET_TITLE_MAXLENGTH - extension.Length) + extension;
+        }
+
+        public async Task<string> GetAssetUrl(string type, Guid guid)
         {
             var externalId = GetAssetExternalId(type, guid);
             var asset = await GetAsset(externalId);
@@ -115,7 +123,7 @@ namespace Kentico.EMS.Kontent.Publishing
             }
             catch (Exception ex)
             {
-                SyncLog.LogException("KenticoKontentPublishing", "DELETEALLPAGES", ex);
+                SyncLog.LogException("KenticoKontentPublishing", "DELETEALLASSETS", ex);
                 throw;
             }
         }
@@ -319,21 +327,20 @@ namespace Kentico.EMS.Kontent.Publishing
 
             try
             {
-                var fileName = mediaFile.FileName.LimitedTo(ASSET_TITLE_MAXLENGTH - mediaFile.FileExtension.Length) + mediaFile.FileExtension;
+                var fullFileName = mediaFile.FileName + mediaFile.FileExtension;
 
-                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "SYNCMEDIAFILE", fileName);
+                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "SYNCMEDIAFILE", fullFileName);
 
                 var externalId = GetMediaFileExternalId(mediaFile.FileGUID);
 
                 var existing = await GetAsset(externalId);
+
+                var fileName = GetShortenedFileName(fullFileName);
                 var title = string.IsNullOrEmpty(mediaFile.FileTitle) ? fileName : mediaFile.FileTitle;
 
                 // TODO - Consider detection by something more sophisticated than file size, but be careful, last modified may be off due to metadata changes
-                if ((existing == null) || (mediaFile.FileSize != existing.Size))
+                if ((existing == null) || (mediaFile.FileSize != existing.Size) || (fileName != existing.FileName))
                 {
-                    // We need to delete the asset first, otherwise upsert endpoint doesn't allow us to change file reference
-                    await DeleteAsset(externalId);
-
                     // Upload new 
                     var filePath = MediaFileInfoProvider.GetMediaFilePath(mediaFile.FileLibraryID, mediaFile.FilePath);
                     var data = File.ReadAllBytes(filePath);
@@ -427,7 +434,7 @@ namespace Kentico.EMS.Kontent.Publishing
             {
                 SyncLog.Log("Synchronizing page attachments");
 
-                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "UPSERTALLATTACHMENTS");
+                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "SYNCALLATTACHMENTS");
 
                 var attachments = AttachmentInfoProvider.GetAttachments()
                     .OnSite(Settings.Sitename);
@@ -436,7 +443,7 @@ namespace Kentico.EMS.Kontent.Publishing
             }
             catch (Exception ex)
             {
-                SyncLog.LogException("KenticoKontentPublishing", "UPSERTALLATTACHMENTS", ex);
+                SyncLog.LogException("KenticoKontentPublishing", "SYNCALLATTACHMENTS", ex);
                 throw;
             }
         }
@@ -497,20 +504,24 @@ namespace Kentico.EMS.Kontent.Publishing
 
             try
             {
-                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "SYNCATTACHMENT", attachment.AttachmentName);
+                var fullFileName = attachment.AttachmentName;
+
+                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "SYNCATTACHMENT", fullFileName);
 
                 var externalId = GetAttachmentExternalId(attachment.AttachmentGUID);
-                var title = string.IsNullOrEmpty(attachment.AttachmentTitle) ? attachment.AttachmentName : attachment.AttachmentTitle;
+
+                var fileName = GetShortenedFileName(fullFileName);
+                var title = string.IsNullOrEmpty(attachment.AttachmentTitle) ? fileName : attachment.AttachmentTitle;
 
                 var existing = await GetAsset(externalId);
 
                 // TODO - Consider detection by something more sophisticated than file size + name
                 // but be careful, last modified may be off due to metadata changes
-                if ((existing == null) || (attachment.AttachmentSize != existing.Size) || (attachment.AttachmentName != existing.FileName))
+                if ((existing == null) || (attachment.AttachmentSize != existing.Size) || (fileName != existing.FileName))
                 {
                     // Upload new 
                     var data = AttachmentBinaryHelper.GetAttachmentBinary((DocumentAttachment)attachment);
-                    var fileReference = await UploadBinaryFile(data, attachment.AttachmentMimeType, attachment.AttachmentName);
+                    var fileReference = await UploadBinaryFile(data, attachment.AttachmentMimeType, fileName);
 
                     await UpsertAsset(externalId, title, attachment.AttachmentDescription, fileReference.Id);
                 }
@@ -527,6 +538,6 @@ namespace Kentico.EMS.Kontent.Publishing
             }
         }
 
-        #endregion      
+        #endregion
     }
 }

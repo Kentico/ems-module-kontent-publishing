@@ -20,8 +20,6 @@ namespace Kentico.EMS.Kontent.Publishing
     {
         private readonly int ELEMENT_MAXLENGTH = 50;
 
-        private PageSync _pageSync;
-
         public static readonly string[] UsedRelationshipNameColumns = new[]
         {
             "RelationshipDisplayName",
@@ -35,9 +33,8 @@ namespace Kentico.EMS.Kontent.Publishing
             "ClassFormDefinition",
         };
 
-        public ContentTypeSync(SyncSettings settings, PageSync pageSync) : base(settings)
+        public ContentTypeSync(SyncSettings settings) : base(settings)
         {
-            _pageSync = pageSync;
         }
 
         #region "External IDs"
@@ -87,13 +84,13 @@ namespace Kentico.EMS.Kontent.Publishing
             }
         }
 
-        public async Task SyncRelationships(CancellationToken? cancellation)
+        public async Task SyncRelationships()
         {
             try
             {
                 SyncLog.Log($"Synchronizing relationships");
 
-                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "UPSERTRELATIONSHIPSSNIPPET");
+                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "SYNCRELATIONSHIPS");
 
                 var kontentSnippet = await GetSnippet(RELATED_PAGES_GUID);
                 if (kontentSnippet != null)
@@ -107,37 +104,7 @@ namespace Kentico.EMS.Kontent.Publishing
             }
             catch (Exception ex)
             {
-                SyncLog.LogException("KenticoKontentPublishing", "UPSERTRELATIONSHIPSSNIPPET", ex);
-                throw;
-            }
-        }
-
-        private async Task DeleteRelationshipsSnippet()
-        {
-            try
-            {
-                SyncLog.Log($"Deleting relationships");
-
-                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "DELETERELATIONSHIPSSNIPPET");
-
-                var externalId = GetSnippetExternalId(RELATED_PAGES_GUID);
-                var endpoint = $"/snippets/external-id/{HttpUtility.UrlEncode(externalId)}";
-
-                await ExecuteWithoutResponse(endpoint, HttpMethod.Delete);
-            }
-            catch (HttpException ex)
-            {
-                if (ex.GetHttpCode() == 404)
-                {
-                    // May not be there yet, 404 is OK
-                    return;
-                }
-
-                throw;
-            }
-            catch (Exception ex)
-            {
-                SyncLog.LogException("KenticoKontentPublishing", "DELETERELATIONSHIPSSNIPPET", ex);
+                SyncLog.LogException("KenticoKontentPublishing", "SYNCRELATIONSHIPS", ex);
                 throw;
             }
         }
@@ -233,7 +200,7 @@ namespace Kentico.EMS.Kontent.Publishing
         public static Guid CONTENT_GUID = new Guid("68faa0d2-f17f-4e88-b019-64d526a626ec");
 
 
-        private static HashSet<string> SystemFields = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase) {
+        private static readonly HashSet<string> SystemFields = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase) {
             "DocumentName",
             "DocumentPublishFrom",
             "DocumentPublishTo"
@@ -253,8 +220,7 @@ namespace Kentico.EMS.Kontent.Publishing
             var documentSystemItems = documentFormInfo.GetFields<FormFieldInfo>().Where(item => SystemFields.Contains(item.Name));
             var typeItems = formInfo.ItemsList.Where(item =>
             {
-                var field = item as FormFieldInfo;
-                if (field != null)
+                if (item is FormFieldInfo field)
                 {
                     // Do not include the ID field
                     return !field.PrimaryKey;
@@ -273,7 +239,7 @@ namespace Kentico.EMS.Kontent.Publishing
         {
             switch (dataType)
             {
-                case FieldDataType.Binary:
+                case FieldDataType.Boolean:
                     return "multiple_choice";
 
                 case FieldDataType.Date:
@@ -292,6 +258,9 @@ namespace Kentico.EMS.Kontent.Publishing
 
                 case FieldDataType.DocRelationships:
                     return "modular_content";
+
+                case FieldDataType.Binary:
+                    throw new NotSupportedException("Binary field type is not supported");
 
                 case FieldDataType.Guid:
                 case FieldDataType.Text:
@@ -347,7 +316,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
                 SyncLog.Log($"Synchronizing content type {contentType.ClassDisplayName} ({index}/{contentTypes.Count})");
 
-                await SyncContentType(cancellation, contentType);
+                await SyncContentType(contentType);
             }
         }
 
@@ -372,7 +341,7 @@ namespace Kentico.EMS.Kontent.Publishing
             }
         }
 
-        public async Task SyncContentType(CancellationToken? cancellation, DataClassInfo contentType)
+        public async Task SyncContentType(DataClassInfo contentType)
         {
             try
             {
@@ -457,8 +426,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
             var fieldItems = items.SelectMany(item =>
             {
-                var category = item as FormCategoryInfo;
-                if (category != null)
+                if (item is FormCategoryInfo category)
                 {
                     pendingCategory = new
                     {
@@ -467,14 +435,13 @@ namespace Kentico.EMS.Kontent.Publishing
                         guidelines = $"<h2>{category.CategoryName}</h2>",
                         content_group = new ExternalIdReference()
                         {
-                            external_id = GetGroupExternalId(contentType.ClassGUID, CONTENT_GUID)
+                            ExternalId = GetGroupExternalId(contentType.ClassGUID, CONTENT_GUID)
                         }
                     };
-                    return new object[0];
+                    return Array.Empty<object>();
                 }
 
-                var field = item as FormFieldInfo;
-                if (field != null)
+                if (item is FormFieldInfo field)
                 {
                     var isRequired = !field.AllowEmpty &&
                         // Exception - CM-13044 File field cannot be required because when a new document under workflow is created, it creates a document which appears published for a moment
@@ -491,15 +458,16 @@ namespace Kentico.EMS.Kontent.Publishing
                         guidelines = GetElementGuidelines(field),
                         is_required = isRequired,
                         type = GetElementType(field.DataType),
-                        options = (field.DataType == FieldDataType.Binary)
+                        mode = "single",
+                        options = (field.DataType == FieldDataType.Boolean)
                             ? new[] {
-                                new MultipleChoiceElementOption { name = "True" },
-                                new MultipleChoiceElementOption { name = "False" }
+                                new MultipleChoiceElementOption { Name = "True", Codename = "true" },
+                                new MultipleChoiceElementOption { Name = "False", Codename = "false" }
                             }
                             : null,
                         content_group = new ExternalIdReference()
                         {
-                            external_id = GetGroupExternalId(contentType.ClassGUID, CONTENT_GUID)
+                            ExternalId = GetGroupExternalId(contentType.ClassGUID, CONTENT_GUID)
                         }
                     };
 
@@ -524,7 +492,7 @@ namespace Kentico.EMS.Kontent.Publishing
                 type = "asset",
                 content_group = new ExternalIdReference()
                 {
-                    external_id = GetGroupExternalId(contentType.ClassGUID, UNSORTED_ATTACHMENTS_GUID)
+                    ExternalId = GetGroupExternalId(contentType.ClassGUID, UNSORTED_ATTACHMENTS_GUID)
                 },
             };
             var relatedPagesElement = new
@@ -535,11 +503,11 @@ namespace Kentico.EMS.Kontent.Publishing
                 type = "snippet",
                 snippet = new ExternalIdReference()
                 {
-                    external_id = GetSnippetExternalId(RELATED_PAGES_GUID)
+                    ExternalId = GetSnippetExternalId(RELATED_PAGES_GUID)
                 },
                 content_group = new ExternalIdReference()
                 {
-                    external_id = GetGroupExternalId(contentType.ClassGUID, RELATED_PAGES_GUID)
+                    ExternalId = GetGroupExternalId(contentType.ClassGUID, RELATED_PAGES_GUID)
                 },
             };
             var categoriesElement = new
@@ -550,11 +518,11 @@ namespace Kentico.EMS.Kontent.Publishing
                 type = "taxonomy",
                 taxonomy_group = new ExternalIdReference()
                 {
-                    external_id = TaxonomySync.GetTaxonomyExternalId(TaxonomySync.CATEGORIES_GUID)
+                    ExternalId = TaxonomySync.GetTaxonomyExternalId(TaxonomySync.CATEGORIES_GUID)
                 },
                 content_group = new ExternalIdReference()
                 {
-                    external_id = GetGroupExternalId(contentType.ClassGUID, TaxonomySync.CATEGORIES_GUID)
+                    ExternalId = GetGroupExternalId(contentType.ClassGUID, TaxonomySync.CATEGORIES_GUID)
                 },
             };
 
@@ -716,7 +684,7 @@ namespace Kentico.EMS.Kontent.Publishing
             {
                 SyncLog.Log("Deleting content types");
 
-                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "DELETEALLTYPES");
+                SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "DELETEALLCONTENTTYPES");
 
                 var contentTypeIds = await GetAllContentTypeIds();
 
@@ -732,7 +700,7 @@ namespace Kentico.EMS.Kontent.Publishing
             }
             catch (Exception ex)
             {
-                SyncLog.LogException("KenticoKontentPublishing", "DELETEALLTYPES", ex);
+                SyncLog.LogException("KenticoKontentPublishing", "DELETEALLCONTENTTYPES", ex);
                 throw;
             }
         }

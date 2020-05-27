@@ -595,6 +595,7 @@
     <Compile Include="Models\Items\ItemsResponse.cs" />
     <Compile Include="Models\ContentTypes\MultipleChoiceElementOption.cs" />
     <Compile Include="Models\Taxonomies\CategoryTerm.cs" />
+    <Compile Include="Sync\LinkTranslator.cs" />
     <Compile Include="Sync\NodeWithoutPublishFrom.cs" />
     <Compile Include="Sync\PageSync.cs" />
     <Compile Include="Sync\ContentTypeSync.cs" />

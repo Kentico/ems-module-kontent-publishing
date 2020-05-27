@@ -2,7 +2,6 @@
 using System.Web;
 using System.Data;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Collections.Generic;
@@ -14,8 +13,8 @@ using CMS.FormEngine;
 using CMS.EventLog;
 using CMS.Relationships;
 using CMS.SiteProvider;
-using CMS.Base.Web.UI;
 using CMS.Localization;
+using CMS.Taxonomy;
 
 namespace Kentico.EMS.Kontent.Publishing
 {
@@ -23,11 +22,14 @@ namespace Kentico.EMS.Kontent.Publishing
     {
         private const int ITEM_NAME_MAXLENGTH = 50;
 
-        private AssetSync _assetSync;
+        private readonly AssetSync _assetSync;
+        private readonly LinkTranslator _linkTranslator;
+        private readonly TreeProvider _tree = new TreeProvider();
 
         public PageSync(SyncSettings settings, AssetSync assetSync) : base(settings)
         {
             _assetSync = assetSync;
+            _linkTranslator = new LinkTranslator(settings, assetSync);
         }
 
         public bool IsAtSynchronizedSite(TreeNode node)
@@ -40,6 +42,21 @@ namespace Kentico.EMS.Kontent.Publishing
         public bool CanBePublished(TreeNode node)
         {
             return IsAtSynchronizedSite(node) && DocumentHelper.GetPublished(new NodeWithoutPublishFrom(node));
+        }
+
+        public TreeNode GetSourceDocument(int documentId)
+        {
+            return _tree.SelectSingleDocument(documentId);
+        }
+
+        public MultiDocumentQuery GetSourceDocuments()
+        {
+            return new MultiDocumentQuery().PublishedVersion();
+        }
+
+        public DocumentQuery GetSourceDocuments(string className)
+        {
+            return new DocumentQuery(className).PublishedVersion();
         }
 
         public static string GetPageExternalId(Guid nodeGuid)
@@ -148,7 +165,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
                     SyncLog.Log($"Deleting page {node.NodeAliasPath} ({index}/{nodes.Count})");
 
-                    await DeletePage(cancellation, node);
+                    await DeletePage(node);
                 }
             }
             catch (Exception ex)
@@ -158,7 +175,7 @@ namespace Kentico.EMS.Kontent.Publishing
             }
         }
 
-        public async Task DeletePage(CancellationToken? cancellation, TreeNode node)
+        public async Task DeletePage(TreeNode node)
         {
             if (node == null)
             {
@@ -191,12 +208,12 @@ namespace Kentico.EMS.Kontent.Publishing
 
                 SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "SYNCALLPAGES", contentType.ClassDisplayName);
 
-                var documents = new DocumentQuery(contentType.ClassName)
+                var documents = GetSourceDocuments(contentType.ClassName)
                     .OnSite(Settings.Sitename)
                     .AllCultures()
                     .PublishedVersion();
 
-                var documentsOnPath = String.IsNullOrEmpty(path) ?
+                var documentsOnPath = string.IsNullOrEmpty(path) ?
                     documents :
                     documents.Path(path, PathTypeEnum.Section);
 
@@ -213,7 +230,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
                     SyncLog.Log($"Synchronizing page { node.NodeAliasPath} - { node.DocumentCulture} ({ node.NodeGUID}) - {index}/{documents.Count}");
 
-                    await SyncPage(cancellation, node);
+                    await SyncPage(node);
                 }
             }
             catch (Exception ex)
@@ -258,7 +275,7 @@ namespace Kentico.EMS.Kontent.Publishing
                 {
                     external_id = ContentTypeSync.GetPageTypeExternalId(pageType.ClassGUID)
                 },
-                sitemap_locations = new object[0]
+                sitemap_locations = Array.Empty<object>()
             };
 
             await ExecuteWithoutResponse(endpoint, HttpMethod.Put, payload);
@@ -447,15 +464,21 @@ LEFT JOIN CMS_Tree T ON R.RightNodeID = T.NodeID
             }
         }
 
-        public async Task SyncAllCultures(CancellationToken? cancellation, int nodeId)
+        public async Task SyncAllCultures(int nodeId)
         {
             // Sync all language versions of the document
-            var nodes = DocumentHelper.GetDocuments().WhereEquals("NodeID", nodeId).WithCoupledColumns().AllCultures();
+            var nodes = GetSourceDocuments()
+                .OnSite(Settings.Sitename)
+                .WhereEquals("NodeID", nodeId)
+                .PublishedVersion()
+                .WithCoupledColumns()
+                .AllCultures();
+
             foreach (var node in nodes)
             {
                 if (IsAtSynchronizedSite(node) && CanBePublished(node))
                 {
-                    await SyncPage(cancellation, node);
+                    await SyncPage(node);
                 }
             }
         }
@@ -468,10 +491,10 @@ LEFT JOIN CMS_Tree T ON R.RightNodeID = T.NodeID
             }
 
             await _assetSync.SyncAllAttachments(cancellation, node);
-            await SyncPage(cancellation, node);
+            await SyncPage(node);
         }
 
-        public async Task SyncPage(CancellationToken? cancellation, TreeNode node)
+        public async Task SyncPage(TreeNode node)
         {
             if (node == null)
             {
@@ -481,7 +504,7 @@ LEFT JOIN CMS_Tree T ON R.RightNodeID = T.NodeID
             if (!CanBePublished(node))
             {
                 // Not published pages should be deleted in KC, but we never delete their attachments, attachments always reflect state in the CMS_Attachment table
-                await DeletePage(cancellation, node);
+                await DeletePage(node);
                 return;
             }
 
@@ -504,7 +527,7 @@ LEFT JOIN CMS_Tree T ON R.RightNodeID = T.NodeID
             }
         }
 
-        private List<Guid> GetRelatedNodeGuids(TreeNode node, FormFieldInfo relationshipsField)
+        private IList<Guid> GetRelatedNodeGuids(TreeNode node, FormFieldInfo relationshipsField)
         {
             var relationshipName = RelationshipNameInfoProvider.GetAdHocRelationshipNameCodeName(node.ClassName, relationshipsField);
             var relationshipNameInfo = RelationshipNameInfoProvider.GetRelationshipNameInfo(relationshipName);
@@ -521,16 +544,12 @@ LEFT JOIN CMS_Tree T ON R.RightNodeID = T.NodeID
                 .WhereEquals("LeftNodeID", node.NodeID)
                 .WhereEquals("RelationshipID", relationshipNameInfo.RelationshipNameId)
                 .OrderBy("RelationshipOrder")
-                .Result
-                .Tables[0]
-                .AsEnumerable()
-                .Select(row => (Guid)row["NodeGUID"])
-                .ToList();
+                .GetListResult<Guid>();
 
             return guids;
         }
 
-        private List<Guid> GetAttachmentGuids(TreeNode node, FormFieldInfo attachmentsField)
+        private IList<Guid> GetAttachmentGuids(TreeNode node, FormFieldInfo attachmentsField)
         {
             var guidsQuery = AttachmentInfoProvider.GetAttachments(node.DocumentID, false)
                 .ExceptVariants()
@@ -541,145 +560,24 @@ LEFT JOIN CMS_Tree T ON R.RightNodeID = T.NodeID
                 ? guidsQuery.WhereEquals("AttachmentGroupGUID", attachmentsField.Guid)
                 : guidsQuery.WhereTrue("AttachmentIsUnsorted");
 
-            var guids = guidsQuery
-                .Result
-                .Tables[0]
-                .AsEnumerable()
-                .Select(row => (Guid)row["AttachmentGUID"])
-                .ToList();
+            var guids = narrowedQuery
+                .GetListResult<Guid>();
 
             return guids;
         }
 
-        private List<Guid> GetCategoryGuids(TreeNode node)
+        private IList<Guid> GetCategoryGuids(TreeNode node)
         {
             var siteId = SiteInfoProvider.GetSiteID(Settings.Sitename);
 
-            var guids = new DataQuery()
-                .From(
-                    new QuerySource(
-                        new QuerySourceTable("CMS_DocumentCategory", "DC")
-                    ).LeftJoin(
-                        new QuerySourceTable("CMS_Category", "C"),
-                        "DC.CategoryID",
-                        "C.CategoryID"
-                    )
-                )
-                .Columns("CategoryGUID")
-                .WhereEquals("DocumentID", node.DocumentID)
-                .WhereEqualsOrNull("CategorySiteID", siteId)
+            var guids = DocumentCategoryInfoProvider.GetDocumentCategories(node.DocumentID)
+                .OnSite(Settings.Sitename, true)
                 .WhereNull("CategoryUserID")
-                .Result
-                .Tables[0]
-                .AsEnumerable()
-                .Select(row => (Guid)row["CategoryGUID"])
+                .TypedResult
+                .Select(category => category.CategoryGUID)
                 .ToList();
 
             return guids;
-        }
-
-        private string TranslateMediaQuery(string query)
-        {
-            if (!string.IsNullOrEmpty(query))
-            {
-                var newQueryParams = new List<KeyValuePair<string, string>>();
-
-                var queryParams = HttpUtility.ParseQueryString(HttpUtility.HtmlDecode(query));
-                foreach (var key in queryParams.AllKeys)
-                {
-                    var newQueryParam = TranslateQueryParam(key, queryParams[key]);
-                    if (newQueryParam != null)
-                    {
-                        newQueryParams.AddRange(newQueryParam);
-                    }
-                }
-
-                if (newQueryParams.Count > 0)
-                {
-                    var newQuery = $"?{ string.Join("&", newQueryParams.Select(param => $"{HttpUtility.UrlEncode(param.Key)}={HttpUtility.UrlEncode(param.Value)}"))}";
-
-                    return newQuery;
-                }
-            }
-
-            return null;
-        }
-
-        private static Regex UrlAttributeRegEx = new Regex("(?<start>\\b(href|src)=\")(?<url>[^\"?]+)(?<query>\\?[^\"]+)?(?<end>\")");
-
-        private async Task<string> ReplaceMediaLink(Match match)
-        {
-            var start = Convert.ToString(match.Groups["start"]);
-            var url = HttpUtility.HtmlDecode(Convert.ToString(match.Groups["url"]));
-            var query = HttpUtility.HtmlDecode(Convert.ToString(match.Groups["query"]));
-            var end = Convert.ToString(match.Groups["end"]);
-
-            try
-            {
-                // We need to set current site before every call to GetMediaData to avoid null reference
-                SiteContext.CurrentSiteName = Settings.Sitename;
-                var data = CMSDialogHelper.GetMediaData(url, Settings.Sitename);
-                if (data != null)
-                {
-                    switch (data.SourceType)
-                    {
-                        case MediaSourceEnum.Attachment:
-                        case MediaSourceEnum.DocumentAttachments:
-                            {
-                                var assetUrl = await _assetSync.GetAssetUrl("attachment", data.AttachmentGuid, data.FileName);
-                                var newQuery = TranslateMediaQuery(query);
-
-                                return $"{start}{HttpUtility.HtmlEncode(assetUrl)}{HttpUtility.HtmlEncode(newQuery)}{end}";
-                            }
-
-                        case MediaSourceEnum.MediaLibraries:
-                            {
-                                var assetUrl = await _assetSync.GetAssetUrl("media", data.MediaFileGuid, data.FileName);
-                                var newQuery = TranslateMediaQuery(query);
-
-                                return $"{start}{HttpUtility.HtmlEncode(assetUrl)}{HttpUtility.HtmlEncode(newQuery)}{end}";
-                            }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                SyncLog.LogException("KenticoKontentPublishing", "TRANSLATEURL", ex, 0, $"Failed to replace media URL '{url + query}', keeping the original URL.");
-            }
-
-            // Keep as it is if translation is not successful, only resolve to absolute URL if needed
-            if (url.StartsWith("~"))
-            {
-                return $"{start}{HttpUtility.HtmlEncode(Settings.WebRoot)}{HttpUtility.HtmlEncode(url.Substring(1))}{HttpUtility.HtmlEncode(query)}{end}";
-            }
-            return match.ToString();
-        }
-
-        private KeyValuePair<string, string>[] TranslateQueryParam(string key, string value)
-        {
-            switch (key.ToLowerInvariant())
-            {
-                case "width":
-                    return new[] { new KeyValuePair<string, string>("w", value) };
-
-                case "height":
-                    return new[] { new KeyValuePair<string, string>("h", value) };
-
-                case "maxsidesize":
-                    return new[] {
-                        new KeyValuePair<string, string>("w", value),
-                        new KeyValuePair<string, string>("h", value),
-                        new KeyValuePair<string, string>("fit", "clip")
-                    };
-
-                default:
-                    return null;
-            }
-        }
-
-        private async Task<string> TranslateLinks(string content)
-        {
-            return await UrlAttributeRegEx.ReplaceAsync(content, ReplaceMediaLink);
         }
 
         private async Task<object> GetElementValue(TreeNode node, FormFieldInfo field)
@@ -688,12 +586,14 @@ LEFT JOIN CMS_Tree T ON R.RightNodeID = T.NodeID
 
             switch (field.DataType)
             {
-                case FieldDataType.Binary:
+                case FieldDataType.Boolean:
                     if (value == null)
                     {
                         return null;
                     }
-                    return (bool)value ? "true" : "false";
+                    return (bool)value
+                        ? new[] { new { codename = "true" } }
+                        : new[] { new { codename = "false" } };
 
                 case FieldDataType.Date:
                 case FieldDataType.DateTime:
@@ -712,7 +612,7 @@ LEFT JOIN CMS_Tree T ON R.RightNodeID = T.NodeID
                 case FieldDataType.File:
                     if (value == null)
                     {
-                        return new object[0];
+                        return Array.Empty<object>();
                     }
                     else
                     {
@@ -732,7 +632,10 @@ LEFT JOIN CMS_Tree T ON R.RightNodeID = T.NodeID
                     });
 
                 case FieldDataType.LongText:
-                    return await TranslateLinks(Convert.ToString(value));
+                    return await _linkTranslator.TranslateLinks(Convert.ToString(value));
+
+                case FieldDataType.Binary:
+                    throw new NotSupportedException("Binary field type is not supported");
 
                 case FieldDataType.Guid:
                 case FieldDataType.Text:
@@ -798,25 +701,11 @@ LEFT JOIN CMS_Tree T ON R.RightNodeID = T.NodeID
             }
             catch (Exception ex)
             {
-                SyncLog.LogException("KenticoKontentPublishing", "DELETEALLPAGES", ex);
+                SyncLog.LogException("KenticoKontentPublishing", "DELETEALLITEMS", ex);
                 throw;
             }
         }
-
-        private async Task<Guid> GetContentTypeId(DataClassInfo contentType)
-        {
-            var externalId = ContentTypeSync.GetPageTypeExternalId(contentType.ClassGUID);
-            var endpoint = $"/types/external-id/{HttpUtility.UrlEncode(externalId)}";
-
-            var response = await ExecuteWithResponse<IdReference>(endpoint, HttpMethod.Get);
-            if (response == null)
-            {
-                return Guid.Empty;
-            }
-
-            return response.Id;
-        }
-
+        
         private async Task DeleteItem(Guid itemId)
         {
             var endpoint = $"/items/{itemId}";

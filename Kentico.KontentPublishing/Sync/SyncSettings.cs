@@ -17,8 +17,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
         public void LoadFromConfig()
         {
-            Guid projectId;
-            Guid.TryParse(ConfigurationManager.AppSettings.Get("KCSyncProjectID"), out projectId);
+            Guid.TryParse(ConfigurationManager.AppSettings.Get("KCSyncProjectID"), out Guid projectId);
             ProjectId = projectId;
 
             CMApiKey = ConfigurationManager.AppSettings.Get("KCSyncCMAPIKey");
