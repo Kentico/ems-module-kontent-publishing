@@ -23,12 +23,14 @@ namespace Kentico.EMS.Kontent.Publishing
         private const int ITEM_NAME_MAXLENGTH = 50;
 
         private readonly AssetSync _assetSync;
+        private readonly ContentTypeSync _contentTypeSync;
         private readonly LinkTranslator _linkTranslator;
         private readonly TreeProvider _tree = new TreeProvider();
 
-        public PageSync(SyncSettings settings, AssetSync assetSync) : base(settings)
+        public PageSync(SyncSettings settings, AssetSync assetSync, ContentTypeSync contentTypeSync) : base(settings)
         {
             _assetSync = assetSync;
+            _contentTypeSync = contentTypeSync;
             _linkTranslator = new LinkTranslator(settings, assetSync);
         }
 
@@ -650,9 +652,7 @@ LEFT JOIN CMS_Tree T ON R.RightNodeID = T.NodeID
         {
             SyncLog.Log("Synchronizing pages");
 
-            var contentTypes = DataClassInfoProvider.GetClasses()
-                .WhereEquals("ClassIsDocumentType", true)
-                .OnSite(Settings.Sitename);
+            var contentTypes = _contentTypeSync.GetSynchronizedContentTypes();
 
             var index = 0;
 

@@ -38,8 +38,8 @@ namespace Kentico.EMS.Kontent.Publishing
             {
                 _assetSync = new AssetSync(_settings);
                 _languageSync = new LanguageSync(_settings);
-                _pageSync = new PageSync(_settings, _assetSync);
                 _contentTypeSync = new ContentTypeSync(_settings);
+                _pageSync = new PageSync(_settings, _assetSync, _contentTypeSync);
                 _taxonomySync = new TaxonomySync(_settings);
             }
         }

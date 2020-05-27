@@ -296,12 +296,7 @@ namespace Kentico.EMS.Kontent.Publishing
         {
             SyncLog.Log("Synchronizing content types");
 
-            var contentTypes = DataClassInfoProvider.GetClasses()
-                .WhereEquals("ClassIsDocumentType", true)
-                .WhereIn(
-                    "ClassID",
-                    ClassSiteInfoProvider.GetClassSites().OnSite(Settings.Sitename).Column("ClassID")
-                );
+            var contentTypes = GetSynchronizedContentTypes();
 
             var index = 0;
 
@@ -318,6 +313,13 @@ namespace Kentico.EMS.Kontent.Publishing
 
                 await SyncContentType(contentType);
             }
+        }
+
+        public ObjectQuery<DataClassInfo> GetSynchronizedContentTypes()
+        {
+            return DataClassInfoProvider.GetClasses()
+                .WhereEquals("ClassIsDocumentType", true)
+                .OnSite(Settings.Sitename);
         }
 
         private async Task<ContentTypeData> GetContentType(DataClassInfo contentType)
