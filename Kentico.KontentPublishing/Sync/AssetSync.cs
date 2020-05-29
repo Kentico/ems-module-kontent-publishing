@@ -338,7 +338,7 @@ namespace Kentico.EMS.Kontent.Publishing
                 var fileName = GetShortenedFileName(fullFileName);
                 var title = string.IsNullOrEmpty(mediaFile.FileTitle) ? fileName : mediaFile.FileTitle;
 
-                // TODO - Consider detection by something more sophisticated than file size, but be careful, last modified may be off due to metadata changes
+                // TODO - Consider detection by something more sophisticated than file size + name, but be careful, last modified may be off due to metadata changes
                 if ((existing == null) || (mediaFile.FileSize != existing.Size) || (fileName != existing.FileName))
                 {
                     // Upload new 
@@ -515,8 +515,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
                 var existing = await GetAsset(externalId);
 
-                // TODO - Consider detection by something more sophisticated than file size + name
-                // but be careful, last modified may be off due to metadata changes
+                // TODO - Consider detection by something more sophisticated than file size + name, but be careful, last modified may be off due to metadata changes
                 if ((existing == null) || (attachment.AttachmentSize != existing.Size) || (fileName != existing.FileName))
                 {
                     // Upload new 
