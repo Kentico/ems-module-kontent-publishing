@@ -591,7 +591,7 @@ LEFT JOIN CMS_Tree T ON R.RightNodeID = T.NodeID
                 case FieldDataType.Boolean:
                     if (value == null)
                     {
-                        return null;
+                        return new object[0];
                     }
                     return (bool)value
                         ? new[] { new { codename = "true" } }

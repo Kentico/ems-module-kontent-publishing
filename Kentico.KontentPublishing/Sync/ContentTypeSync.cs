@@ -59,6 +59,11 @@ namespace Kentico.EMS.Kontent.Publishing
             return $"group|{classGuid}|{guid}";
         }
 
+        private string GetMultipleChoiceOptionExternalId(Guid classGuid, Guid guid, string value)
+        {
+            return $"option|{classGuid}|{guid}|{value}";
+        }
+    
         #endregion
 
         #region "Relationships"
@@ -426,18 +431,20 @@ namespace Kentico.EMS.Kontent.Publishing
             var items = GetItemsToSync(contentType.ClassName);
             object pendingCategory = null;
 
+            var classGuid = contentType.ClassGUID;
+
             var fieldItems = items.SelectMany(item =>
             {
                 if (item is FormCategoryInfo category)
                 {
                     pendingCategory = new
                     {
-                        external_id = $"group|{contentType.ClassGUID}|{ValidationHelper.GetCodeName(category.CategoryName)}",
+                        external_id = $"group|{classGuid}|{ValidationHelper.GetCodeName(category.CategoryName)}",
                         type = "guidelines",
                         guidelines = $"<h2>{category.CategoryName}</h2>",
                         content_group = new ExternalIdReference()
                         {
-                            ExternalId = GetGroupExternalId(contentType.ClassGUID, CONTENT_GUID)
+                            ExternalId = GetGroupExternalId(classGuid, CONTENT_GUID)
                         }
                     };
                     return Array.Empty<object>();
@@ -452,9 +459,11 @@ namespace Kentico.EMS.Kontent.Publishing
                         // Exception - Allow empty value for root document name
                         ((field.Name.ToLowerInvariant() != "documentname") || (contentType.ClassName.ToLowerInvariant() != "cms.root"));
 
+                    var fieldGuid = field.Guid;
+
                     var element = new
                     {
-                        external_id = GetFieldExternalId(contentType.ClassGUID, field.Guid),
+                        external_id = GetFieldExternalId(classGuid, fieldGuid),
                         name = GetElementName(field).LimitedTo(ELEMENT_MAXLENGTH),
                         codename = field.Name.ToLower().LimitedTo(ELEMENT_MAXLENGTH),
                         guidelines = GetElementGuidelines(field),
@@ -463,13 +472,21 @@ namespace Kentico.EMS.Kontent.Publishing
                         mode = "single",
                         options = (field.DataType == FieldDataType.Boolean)
                             ? new[] {
-                                new MultipleChoiceElementOption { Name = "True", Codename = "true" },
-                                new MultipleChoiceElementOption { Name = "False", Codename = "false" }
+                                new MultipleChoiceElementOption {
+                                    Name = "True",
+                                    Codename = "true",
+                                    ExternalId = GetMultipleChoiceOptionExternalId(classGuid, fieldGuid, "true"),
+                                },
+                                new MultipleChoiceElementOption {
+                                    Name = "False",
+                                    Codename = "false",
+                                    ExternalId = GetMultipleChoiceOptionExternalId(classGuid, fieldGuid, "false"),
+                                }
                             }
                             : null,
                         content_group = new ExternalIdReference()
                         {
-                            ExternalId = GetGroupExternalId(contentType.ClassGUID, CONTENT_GUID)
+                            ExternalId = GetGroupExternalId(classGuid, CONTENT_GUID)
                         }
                     };
 
@@ -488,18 +505,18 @@ namespace Kentico.EMS.Kontent.Publishing
 
             var unsortedAttachmentsElement = new
             {
-                external_id = GetFieldExternalId(contentType.ClassGUID, UNSORTED_ATTACHMENTS_GUID),
+                external_id = GetFieldExternalId(classGuid, UNSORTED_ATTACHMENTS_GUID),
                 name = UNSORTED_ATTACHMENTS_NAME,
                 codename = UNSORTED_ATTACHMENTS.ToLower(),
                 type = "asset",
                 content_group = new ExternalIdReference()
                 {
-                    ExternalId = GetGroupExternalId(contentType.ClassGUID, UNSORTED_ATTACHMENTS_GUID)
+                    ExternalId = GetGroupExternalId(classGuid, UNSORTED_ATTACHMENTS_GUID)
                 },
             };
             var relatedPagesElement = new
             {
-                external_id = GetFieldExternalId(contentType.ClassGUID, RELATED_PAGES_GUID),
+                external_id = GetFieldExternalId(classGuid, RELATED_PAGES_GUID),
                 name = RELATED_PAGES_NAME,
                 codename = RELATED_PAGES.ToLower(),
                 type = "snippet",
@@ -509,12 +526,12 @@ namespace Kentico.EMS.Kontent.Publishing
                 },
                 content_group = new ExternalIdReference()
                 {
-                    ExternalId = GetGroupExternalId(contentType.ClassGUID, RELATED_PAGES_GUID)
+                    ExternalId = GetGroupExternalId(classGuid, RELATED_PAGES_GUID)
                 },
             };
             var categoriesElement = new
             {
-                external_id = GetFieldExternalId(contentType.ClassGUID, TaxonomySync.CATEGORIES_GUID),
+                external_id = GetFieldExternalId(classGuid, TaxonomySync.CATEGORIES_GUID),
                 name = TaxonomySync.CATEGORIES,
                 codename = TaxonomySync.CATEGORIES.ToLower(),
                 type = "taxonomy",
@@ -524,12 +541,12 @@ namespace Kentico.EMS.Kontent.Publishing
                 },
                 content_group = new ExternalIdReference()
                 {
-                    ExternalId = GetGroupExternalId(contentType.ClassGUID, TaxonomySync.CATEGORIES_GUID)
+                    ExternalId = GetGroupExternalId(classGuid, TaxonomySync.CATEGORIES_GUID)
                 },
             };
 
             var allElements = fieldItems
-                .AsEnumerable<object>()
+                .AsEnumerable()
                 .Concat(new object[] {
                     unsortedAttachmentsElement,
                     relatedPagesElement,
