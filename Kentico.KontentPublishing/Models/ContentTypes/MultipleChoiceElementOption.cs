@@ -9,5 +9,8 @@ namespace Kentico.EMS.Kontent.Publishing
 
         [JsonProperty("codename")]
         public string Codename { get; set; }
+
+        [JsonProperty("external_id")]
+        public string ExternalId { get; set; }
     }
 }
