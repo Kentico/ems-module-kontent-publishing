@@ -152,3 +152,5 @@ Rebuild the solution(s).
 Field type changes which would change the element type in the Kontent content type are not supported. E.g. changing number to text.
 
 ## [Questions & Support](https://github.com/Kentico/Home/blob/master/README.md)
+
+![Analytics](https://kentico-ga-beacon.azurewebsites.net/api/UA-69014260-4/Kentico/ems-module-kontent-publishing?pixel)
