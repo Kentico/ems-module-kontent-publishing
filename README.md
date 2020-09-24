@@ -142,13 +142,9 @@ You can now  edit the code and commit changes to the original repository. Feel f
 ## Uninstalling the module
 
 To remove the module from your *Xperience* instance:
-
 1. Remove the *Kentico.KontentPublishing* project from your solution(s).
-
 2. Remove all files introduced by this repository.
-
 3. Delete the *Kentico Kontent Publishing* module from the Xperience administration interface.
-
 4. Rebuild the solution(s).
 
 ![Analytics](https://kentico-ga-beacon.azurewebsites.net/api/UA-69014260-4/Kentico/ems-module-kontent-publishing?pixel)
