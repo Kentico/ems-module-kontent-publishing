@@ -1,52 +1,46 @@
-# Publishing content from Kentico EMS to Kentico Kontent
+# Publishing content from Kentico Xperience to Kentico Kontent
 
 [![Stack Overflow](https://img.shields.io/badge/Stack%20Overflow-ASK%20NOW-FE7A16.svg?logo=stackoverflow&logoColor=white)](https://stackoverflow.com/tags/kentico)
 
-## :warning: **DISCLAIMER** 
-This is a *sample* module, it needs detailed testing and maybe some fixing for real production usage. See also [Known issues and TODOs](#known-issues-and-todos).
+This repository contains the source code of the *Kentico Xperience* - *Kentico Kontent* publishing module.
 
-## Description
+The module automatically synchronizes all published content (pages, page types) and assets (media files, page attachments) from a specific single site in [Kentico Xperience](https://xperience.io/) to a specific project in [Kentico Kontent](https://kontent.ai) using the Content Management API.
 
-This repository contains source code of the Kentico Kontent publishing module for Kentico EMS.
+The module is designed to publish content only from *Kentico Xperience* to *Kentico Kontent*, not vice-versa.
 
-The module automatically synchronizes all published content and assets (media files, page attachments) from a specific site in [Kentico EMS](https://www.kentico.com) to a specific project in [Kentico Kontent](https://kontent.ai) using the Content Management API.
+The typical use case for the module is providing a reliable headless endpoint for your additional channels, e.g. a mobile application.
 
-NOTE: The publishing only handles the direction from Kentico EMS to Kentico Kontent, not vice-versa.
+## Setting up the environment 
 
-The typical use cases for the module are:
-* Providing a reliable headless endpoint for your additional channels, e.g. mobile application
-  * The data shouldn't be edited in Kentico Kontent, as they may be ovewritten by changes in Kentico EMS. You can still observe and navigate data in Kentico Kontent while developing or debugging your target application.
-* Migrating data to Kentico Kontent
+### Installing the Xperience module
 
-## How to use this repository
+To install the module to your Xperience instance:
 
-### Manual installation with the source code from repository
+1. Copy the contents of this repository to the root of your Xperience installation.
 
-Copy the contents of this repository to the root of your Kentico EMS installation.
+   * You can do that by cloning the repository to a local folder (other than your Xperience folder) and then copying the files over to your Xperience folder.
 
-You can do that by cloning the repository to a local folder (other than your Kentico EMS folder), and then copy the files over to your Kentico EMS folder.
+   * Only the files from the following folders are necessary for a proper installation of the module:  
+     * `/Kentico.KontentPublishing`
+     * `/CMS`
 
-NOTE: Only the files from following folders are necessary for the module, you can ignore the rest of the files:
-* `/Kentico.KontentPublishing`
-* `/CMS`
+2. Open the Xperience solution in Visual Studio, and add the **Kentico.KontentPublishing** project to the solution.
 
-Open the Kentico EMS solution in Visual Studio, and add project **Kentico.KontentPublishing** to the solution.
+   * Include all the content from the `/CMS/CMSModules/Kentico.KontentPublishing` folder to the CMSApp project.
 
-Include all the content in folder `/CMS/CMSModules/Kentico.KontentPublishing` to the CMSApp project.
+   * Add a **reference** to the **Kentico.KontentPublishing** project in the CMSApp project.
 
-Add **reference** to project **Kentico.KontentPublishing** to the CMSApp project.
+     * OPTIONAL: In case you have more projects, e.g. an MVC site instance, add the same reference to those projects, as well.
 
-OPTIONAL: In case you have more projects, e.g. an MVC site instance, add the same reference also to those projects. 
+3. **Update Kentico NuGet packages** for the the *Kentico.KontentPublishing* project to the same version as your current hotfix version of *Kentico Xperience*.
 
-**Update Kentico NuGet packages** for the Kentico.KontentPublishing project to the same version as your current hotfix version of Kentico EMS.
+4. Build the solution.
 
-**Build the solution**.
+### Connecting to Kontent
 
-### Kentico Kontent Configuration
+1. Create a **new empty project** in [Kentico Kontent](https://app.kontent.ai).
 
-Create a **new empty project** in [Kentico Kontent](https://app.kontent.ai).
-
-Add the following keys to the web.config (or app.config) of your project(s)
+2. Add the following keys to the web.config (or app.config) of your project(s)
 
 ```
 <add key="KCSyncSitename" value="[SITE CODE NAME]" />
@@ -56,101 +50,100 @@ Add the following keys to the web.config (or app.config) of your project(s)
 <add key="KCSyncCMAPIKey" value="[YOUR CM API KEY]" />
 ```
 
-`KCSyncSitename` is the code name of the site you want to synchronize to Kentico Kontent, e.g. `DancingGoatMvc`
+  - `KCSyncSitename` is the code name of the site you want to synchronize with your *Kontent* project, e.g. `DancingGoatMvc`
 
-`KCSyncWebRoot` is the root URL of the target site, to which relative URLs will be resolved, e.g. `https://www.dancinggoat.com`
+  - `KCSyncWebRoot` is the root URL of the target site, to which relative URLs will be resolved, e.g. `https://www.dancinggoat.com`
 
-`KCSyncAssetsDomain` is the domain name on which the assets in your Kentico Kontent project will be located. It depends on the geographical location in which your Kentico Kontent project is hosted. e.g. `assets-us-01.kc-usercontent.com`.
+  - `KCSyncAssetsDomain` is the domain name on which the assets in your *Kontent* project will be located. It depends on the geographical location in which your *Kontent* project is hosted, e.g. `assets-us-01.kc-usercontent.com`.
 
-The easiest way to learn this domain for your project is to upload a new temporary asset in **Content & Assets**, and then use the **Copy asset URL** action in the actions menu. You can find the domain in the copy dialog.
+     - The easiest way to find out this domain name is to upload a new temporary asset (in *Kontent*) in the **Content & Assets**, and use the **Copy asset URL** action in the actions menu. You can then find the domain in the copy dialog.
 
-![Copy asset URL](images/CopyAssetUrl.png)
+     ![Copy asset URL](images/CopyAssetUrl.png)
 
-After you get the domain name, you can delete the asset.
+     - After you get the domain name, you can delete the asset.
 
-`KCSyncProjectID` and `KCSyncCMAPIKey` can be found in the **API Keys** section of the **Project settings** of your target Kentico Kontent Project.
+  - `KCSyncProjectID` and `KCSyncCMAPIKey` can be found in the **API Keys** section of the **Project settings** of your target *Kentico Kontent* Project.
 
-Navigate to **Kentico EMS administration -> Sites -> Import Site or objects** and Import package **Kentico.KontentPublishing_1.0.0.zip**. If you properly copied the module files, the package should be offered automatically in this dialog.
+### Importing the Xperience module
 
-![Import package](images/ImportPackage.png)
+1. Navigate to the **Xperience administration -> Sites application -> Import Site or objects** 
+2. Import the **Kentico.KontentPublishing_1.0.0.zip** package. If you properly copied the module files, the package should be automatically offered in this dialog.
 
-Refresh the administration.
+  ![Import package](images/ImportPackage.png)
 
-Now the **Kentico Kontent Publishing** module should be available.
+3. Refresh the administration interface, e.g. by reloading the page in your web browser.
 
-### Synchronize content to Kentico Kontent
+The **Kentico Kontent Publishing** application should be now available in your application list.
+
+## Working with the module
+
+### Synchronizing content
 
 ![Module user interface](images/KenticoKontentPublishing.png)
 
-Navigate to application **Kentico Kontent Publishing**.
+To synchronize your content between *Kentico Xperience* and *Kentico Kontent*:
 
-Click **Synchronize all** to copy all currently published content to Kentico Kontent and wait until the synchronization finishes.
+1. In the *Xperience* admnistration interface, open the **Kentico Kontent Publishing** application.
 
-![Synchronizing changes](images/KenticoKontentPublishingSync.png)
+2. Click the **Synchronize all** button to copy all currently published content to *Kentico Kontent* and wait until the synchronization finishes.
 
-After the synchronization, Kentico Kontent will be populated with all the published content. Examine it and its structure and if something doesn't fit your needs, consider customization.
+   ![Synchronizing changes](images/KenticoKontentPublishingSync.png)
 
-![Published content](images/PublishedContent.png)
+After the synchronization is finished, *Kentico Kontent* will contain all your published content from *Kentico Xperience*. Examine the content and update the content structure in *Xperience* if necessary.
 
-New changes to the published content will synchronize automatically.
+   ![Published content](images/PublishedContent.png)
 
-### Customization
+New changes to the published content in *Xperience* will synchronize automatically.
 
-Edit the synchronization code in **KenticoKontentPublishing** project.
+Once you perform the synchronization, you should edit your content only in *Kentico Xperience*. Any modifications done in *Kontent* might get overwritten by changes in *Xperience*. However, you can still observe and navigate data in *Kentico Kontent* while developing or debugging your target application.
 
-Click **Synchronize all** to update all currently published content in Kentico Kontent.
+### Migrating content
 
-Use **Show advanced actions** for partial updates while customizing code, or for purging of the whole project data.
+It is possible to transfer all the content and assets from *Kentico Xperience* to *Kentico Kontent* as plaintext HTML using this module.
 
-NOTE: It is not recommended to mix content from Kentico EMS and manually created content in the same project in Kentico Kontent, as the purging process deletes all the content no matter from where it originated.
+In case you would like to embrace a fully headless CMS:
+1. Set up the module and run full synchronization as described in the sections above. 
+2. Remove the module from your *Xperience* instance. 
+3. Continue with editing the content in your *Kontent* project. 
 
-### Migrating content to Kentico Kontent
+Please, note the following:
+- The content is migrated as plaintext and any styles applied in *Xperience* (such as bold, or italics) are transferred to *Kontent* as HTML tags. Therefore, we recommend to use this approach of migrating content only in specific scenarios, e.g. when majority of your content is in plaintext form without any styles.
+- The module synchronizes only published content. If you have any unpublished content that you wish to migrate, publish it before the data migration.
 
-This module is able to transfer all the content and assets from Kentico EMS to Kentico Kontent.
 
-In case you would like to embrace fully headless CMS, migrate your content and continue editing it in Kentico Kontent, set up the module the same way, run full synchronization as described above, and then remove the module from your Kentico EMS instance.
+### Customizing the module
 
-NOTE: The module synchronizes only published content. If you have any unpublished content that you wish to migrate, publish it before the data migration. 
+If you wish to customize this module, you can edit the synchronization part of the code in the **Kentico.KontentPublishing** project.
 
-Continue with the editing in Kentico Kontent.
+To perform partial updates while customizing the code or to purge all project data:
+1. Click on the **Synchronize all** button in the **Kentico Kontent Publishing** application.
+2. Click on the **Show advanced actions** button and select the action you wish to perform.
 
-### Development
+Please, note that it is not recommended to mix synchronized content from *Kentico Xperience* with manually created content in *Kentico Kontent*. "Mixing" content could result in  overwritten or lost data, because deleting the project data removes all the content from your project, no matter where it originated.
 
-You can merge this repository with your existing Kentico EMS project and make commits to it provided it doesn't have it's own git repository.
+## Uninstalling the module
 
-Follow the installation guide, but instead of cloning the repository to another folder and copying it over to your installation, clone it directly to your existing Kentico EMS installation.
-
-Run the following commands in command line:
-
-```
-cd your/kentico/ems/root/folder
-git init
-echo * > .gitignore
-git remote add origin https://github.com/Kentico/ems-module-kontent-publishing.git
-git fetch
-git checkout origin/master -b master
-```
-
-After this, you can easily edit the code, and commit changes to the original repository. Feel free to submit any pull requests with fixed or enhanced functionality.
-
-### Module uninstallation
-
-In order to remove the module from Kentico EMS instance, do the following:
-
-Remove Kentico.KontentPublishing project from your solution(s).
-
-Remove all files brought by this repository.
-
-Delete the module Kentico Kontent Publishing from Kentico EMS Administration interface.
-
-Rebuild the solution(s).
+To remove the module from your *Xperience* instance:
+1. Remove the *Kentico.KontentPublishing* project from your solution(s).
+2. Remove all files introduced by this repository.
+3. Delete the *Kentico Kontent Publishing* module from the Xperience administration interface.
+4. Rebuild the solution(s).
 
 ![Analytics](https://kentico-ga-beacon.azurewebsites.net/api/UA-69014260-4/Kentico/ems-module-kontent-publishing?pixel)
 
-### Known issues
+## Remarks & Known issues
 
-Field type changes which would change the element type in the Kontent content type are not supported. E.g. changing number to text.
+* Pages set to be published in the future (with the *PublishFrom* field correspondingly set) will be automatically synchronized to *Kontent* once they are published in *Xperience*. However, pages unpublished in the future (with the *PublishTo* field set) will stay in *Kontent* even after unpublished in *Xperience*.
+* Only certain page fields and relationships are synchronized. E.g. SKU-related page fields are not synchronized.
+* Files from *Xperience* media libraries are always synchronized into a "flat" structure in *Kontent*. I.e. the original folder structure of media library files is not preserved.
+* The preview file of media library files is not synchronized.
+* Only limited conversion of page type fields between *Xperience* and *Kontent* projects is supported.
+* Workflows configured in *Xperience* might not work correctly when content will be manipulated with through the *Kontent* project.
+* Synchronization of content is always performed either manually (via the *Xperience* application) or triggered by events. Regular content synchronization is not yet supported.
+* The module is designed for single site projects only.
 
 ## [Questions & Support](https://github.com/Kentico/Home/blob/master/README.md)
+
+See the [Kentico home repository](https://github.com/Kentico/Home/blob/master/README.md) for more information about the product(s), general advice on submitting your questions or directly contacting us.
 
 ![Analytics](https://kentico-ga-beacon.azurewebsites.net/api/UA-69014260-4/Kentico/ems-module-kontent-publishing?pixel)
