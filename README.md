@@ -89,7 +89,7 @@ To synchronize your content between *Kentico Xperience* and *Kentico Kontent*:
 
    ![Synchronizing changes](images/KenticoKontentPublishingSync.png)
 
-After the synchronization is finished, *Kentico Kontent* will contain all your published content from *Kentico Xperience*. Examine the content and its structure and update it if necessary.
+After the synchronization is finished, *Kentico Kontent* will contain all your published content from *Kentico Xperience*. Examine the content and update the content structure in *Xperience* if necessary.
 
    ![Published content](images/PublishedContent.png)
 
@@ -115,29 +115,11 @@ Please, note the following:
 
 If you wish to customize this module, you can edit the synchronization part of the code in the **Kentico.KontentPublishing** project.
 
-Click on the **Show advanced actions** button in the **Kentico Kontent Publishing** application for partial updates while customizing code, or for purging of the whole project data.
+To perform partial updates while customizing the code or to purge all project data:
+1. Click on the **Synchronize all** button in the **Kentico Kontent Publishing** application.
+2. Click on the **Show advanced actions** button and select the action you wish to perform.
 
 Please, note that it is not recommended to mix synchronized content from *Kentico Xperience* with manually created content in *Kentico Kontent*. "Mixing" content could result in  overwritten or lost data, because deleting the project data removes all the content from your project, no matter where it originated.
-
-## Further developing the module
-
-You can merge this repository with your existing *Xperience* project and then commit your additions directly to the repository.
-
-To merge this repository with your own *Xperience* project:
-1. Follow the installation instructions in the sections above, but instead of cloning the repository to another folder and copying it over to your installation, clone it directly to your existing Xperience installation.
-
-2. Run the following commands in command line:
-
-    ```
-    cd your/kentico/ems/root/folder 
-    git init
-    echo * > .gitignore
-    git remote add origin https://github.com/Kentico/ems-module-kontent-publishing.git
-    git fetch
-    git checkout origin/master -b master
-    ```
-
-You can now  edit the code and commit changes to the original repository. Feel free to submit any pull requests with fixed or enhanced functionality.
 
 ## Uninstalling the module
 
@@ -158,7 +140,7 @@ To remove the module from your *Xperience* instance:
 * Only limited conversion of page type fields between *Xperience* and *Kontent* projects is supported.
 * Workflows configured in *Xperience* might not work correctly when content will be manipulated with through the *Kontent* project.
 * Synchronization of content is always performed either manually (via the *Xperience* application) or triggered by events. Regular content synchronization is not yet supported.
-* In general, the module is designed for small-scale single site projects.
+* The module is designed for single site projects only.
 
 ## [Questions & Support](https://github.com/Kentico/Home/blob/master/README.md)
 
