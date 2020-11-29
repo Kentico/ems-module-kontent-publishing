@@ -35,7 +35,7 @@ namespace Kentico.EMS.Kontent.Publishing
         {
             var siteId = SiteInfoProvider.GetSiteID(Settings.Sitename);
 
-            return CultureSiteInfoProvider.GetCultureSiteInfo(culture.CultureID, siteId) != null;
+            return CultureSiteInfo.Provider.Get(culture.CultureID, siteId) != null;
         }
 
         private async Task<List<LanguageData>> GetAllLanguages(string continuationToken = null)

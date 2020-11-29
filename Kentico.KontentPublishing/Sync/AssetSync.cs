@@ -240,7 +240,7 @@ namespace Kentico.EMS.Kontent.Publishing
         {
             SyncLog.Log("Synchronizing media libraries");
 
-            var mediaLibraries = MediaLibraryInfoProvider.GetMediaLibraries().OnSite(Settings.Sitename);
+            var mediaLibraries = MediaLibraryInfo.Provider.Get().OnSite(Settings.Sitename);
 
             var index = 0;
 
@@ -267,7 +267,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
                 SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "UPSERTMEDIAFILES", mediaLibrary.LibraryDisplayName);
 
-                var mediaFiles = MediaFileInfoProvider.GetMediaFiles()
+                var mediaFiles = MediaFileInfo.Provider.Get()
                     .WhereEquals("FileLibraryID", mediaLibrary.LibraryID)
                     .BinaryData(false);
 
@@ -436,7 +436,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
                 SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "SYNCALLATTACHMENTS");
 
-                var attachments = AttachmentInfoProvider.GetAttachments()
+                var attachments = AttachmentInfo.Provider.Get()
                     .OnSite(Settings.Sitename);
 
                 await SyncAttachments(cancellation, attachments);

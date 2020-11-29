@@ -116,7 +116,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
         private IEnumerable<object> GetRelationshipElements()
         {
-            var relationshipNames = RelationshipNameInfoProvider.GetRelationshipNames()
+            var relationshipNames = RelationshipNameInfo.Provider.Get()
                 .WhereEqualsOrNull("RelationshipNameIsAdHoc", false)
                 .OnSite(Settings.Sitename);
 
@@ -286,7 +286,7 @@ namespace Kentico.EMS.Kontent.Publishing
         {
             var siteId = SiteInfoProvider.GetSiteID(Settings.Sitename);
 
-            return RelationshipNameSiteInfoProvider.GetRelationshipNameSiteInfo(relationshipName.RelationshipNameId, siteId) != null;
+            return RelationshipNameSiteInfo.Provider.Get(relationshipName.RelationshipNameId, siteId) != null;
         }
 
 
@@ -294,7 +294,7 @@ namespace Kentico.EMS.Kontent.Publishing
         {
             var siteId = SiteInfoProvider.GetSiteID(Settings.Sitename);
 
-            return ClassSiteInfoProvider.GetClassSiteInfo(contentType.ClassID, siteId) != null;
+            return ClassSiteInfo.Provider.Get(contentType.ClassID, siteId) != null;
         }
 
         public async Task SyncAllContentTypes(CancellationToken? cancellation)
