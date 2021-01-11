@@ -121,6 +121,25 @@ To perform partial updates while customizing the code or to purge all project da
 
 Please, note that it is not recommended to mix synchronized content from *Kentico Xperience* with manually created content in *Kentico Kontent*. "Mixing" content could result in  overwritten or lost data, because deleting the project data removes all the content from your project, no matter where it originated.
 
+## Development
+
+You can merge this repository with your existing Kentico Xperience project and make commits to it provided it doesn't have it's own git repository.
+
+Follow the installation guide, but instead of cloning the repository to another folder and copying it over to your installation, clone it directly to your existing Kentico Xperience installation.
+
+Run the following commands in command line:
+
+```
+cd your/kentico/xperience/root/folder
+git init
+echo * > .gitignore
+git remote add origin https://github.com/Kentico/xperience-module-kontent-publishing.git
+git fetch
+git checkout origin/master -b master
+```
+
+After this, you can easily edit the code, and commit changes to the original repository. Feel free to submit any pull requests with fixed or enhanced functionality.
+
 ## Uninstalling the module
 
 To remove the module from your *Xperience* instance:
