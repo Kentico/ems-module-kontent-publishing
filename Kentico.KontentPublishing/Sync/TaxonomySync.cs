@@ -126,7 +126,7 @@ namespace Kentico.EMS.Kontent.Publishing
             {
                 SyncLog.LogEvent(EventType.INFORMATION, "KenticoKontentPublishing", "CREATECATEGORIESTAXONOMY");
 
-                var categories = CategoryInfoProvider.GetCategories()
+                var categories = CategoryInfo.Provider.Get()
                     .OnSite(Settings.Sitename, true)
                     .WhereNull("CategoryUserID")
                     // Global first

@@ -18,7 +18,7 @@ To install the module to your Xperience instance:
 
 1. Copy the contents of this repository to the root of your Xperience installation.
 
-   * You can do that by cloning the repository to a local folder (other than your Xperience folder) and then copying the files over to your Xperience folder.
+   * You can do that by downloading release package or cloning the repository to a local folder (other than your Xperience folder) and then copying the files over to your Xperience folder.
 
    * Only the files from the following folders are necessary for a proper installation of the module:  
      * `/Kentico.KontentPublishing`
@@ -47,7 +47,7 @@ To install the module to your Xperience instance:
 <add key="KCSyncWebRoot" value="[URL OF THE TARGET WEB SITE]" />
 <add key="KCSyncAssetsDomain" value="[KENTICO KONTENT ASSET DOMAIN]" />
 <add key="KCSyncProjectID" value="[YOUR PROJECT ID]" />
-<add key="KCSyncCMAPIKey" value="[YOUR CM API KEY]" />
+<add key="KCSyncCMAPIKey" value="[YOUR MANAGEMENT API KEY]" />
 ```
 
   - `KCSyncSitename` is the code name of the site you want to synchronize with your *Kontent* project, e.g. `DancingGoatMvc`
@@ -62,7 +62,8 @@ To install the module to your Xperience instance:
 
      - After you get the domain name, you can delete the asset.
 
-  - `KCSyncProjectID` and `KCSyncCMAPIKey` can be found in the **API Keys** section of the **Project settings** of your target *Kentico Kontent* Project.
+  - `KCSyncProjectID` is the Project ID of your *Kontent* project, it can be found in the **API Keys** section of the **Project settings** of your target *Kentico Kontent* Project.
+  - `KCSyncCMAPIKey` is the Management API key of your *Kontent* project, it can be found in the **API Keys** section of the **Project settings** of your target *Kentico Kontent* Project.
 
 ### Importing the Xperience module
 
@@ -120,6 +121,25 @@ To perform partial updates while customizing the code or to purge all project da
 2. Click on the **Show advanced actions** button and select the action you wish to perform.
 
 Please, note that it is not recommended to mix synchronized content from *Kentico Xperience* with manually created content in *Kentico Kontent*. "Mixing" content could result in  overwritten or lost data, because deleting the project data removes all the content from your project, no matter where it originated.
+
+## Development
+
+You can merge this repository with your existing Kentico Xperience project and make commits to it provided it doesn't have it's own git repository.
+
+Follow the installation guide, but instead of cloning the repository to another folder and copying it over to your installation, clone it directly to your existing Kentico Xperience installation.
+
+Run the following commands in command line:
+
+```
+cd your/kentico/xperience/root/folder
+git init
+echo * > .gitignore
+git remote add origin https://github.com/Kentico/xperience-module-kontent-publishing.git
+git fetch
+git checkout origin/master -b master
+```
+
+After this, you can easily edit the code, and commit changes to the original repository. Feel free to submit any pull requests with fixed or enhanced functionality.
 
 ## Uninstalling the module
 

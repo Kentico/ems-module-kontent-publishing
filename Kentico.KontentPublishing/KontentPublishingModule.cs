@@ -295,7 +295,7 @@ namespace Kentico.EMS.Kontent.Publishing
         {
             if ((e.Object is MediaLibraryInfo mediaLibrary) && _assetSync.IsAtSynchronizedSite(mediaLibrary))
             {
-                var mediaFiles = MediaFileInfoProvider.GetMediaFiles()
+                var mediaFiles = MediaFileInfo.Provider.Get()
                     .WhereEquals("FileLibraryID", mediaLibrary.LibraryID)
                     .BinaryData(false)
                     .TypedResult
@@ -464,7 +464,7 @@ namespace Kentico.EMS.Kontent.Publishing
                         .ToList();
 
                     var documentIds = subtree.Select(n => n.DocumentID).ToList();
-                    var attachments = AttachmentInfoProvider.GetAttachments()
+                    var attachments = AttachmentInfo.Provider.Get()
                         .WhereIn("AttachmentDocumentID", documentIds)
                         .BinaryData(false)
                         .ExceptVariants()

@@ -1,4 +1,5 @@
-﻿using CMS.EventLog;
+﻿using CMS.Core;
+using CMS.EventLog;
 using System;
 
 namespace Kentico.EMS.Kontent.Publishing
@@ -19,7 +20,7 @@ namespace Kentico.EMS.Kontent.Publishing
 
         public static void LogEvent(string eventType, string source, string eventCode, string eventDescription = null)
         {
-            EventLogProvider.LogEvent(eventType, source, eventCode, eventDescription);
+            Service.Resolve<IEventLogService>().LogEvent(EventType.ToEventTypeEnum(eventType), source, eventCode, eventDescription);
         }
 
         public static void LogException(string source, string eventCode, Exception ex, int siteId = 0, string additionalMessage = null)
@@ -29,7 +30,7 @@ namespace Kentico.EMS.Kontent.Publishing
             {
                 return;
             }
-            EventLogProvider.LogException(source, eventCode, ex, siteId, additionalMessage);
+            Service.Resolve<IEventLogService>().LogException(source, eventCode, ex, siteId, additionalMessage, null);
             lastLoggedException = ex;
         }
     }

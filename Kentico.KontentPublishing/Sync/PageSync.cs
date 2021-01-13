@@ -69,7 +69,7 @@ namespace Kentico.EMS.Kontent.Publishing
         private string GetVariantEndpoint(TreeNode node)
         {
             var itemExternalId = GetPageExternalId(node.NodeGUID);
-            var cultureInfo = CultureInfoProvider.GetCultureInfo(node.DocumentCulture);
+            var cultureInfo = CultureInfo.Provider.Get(node.DocumentCulture);
             if (cultureInfo == null)
             {
                 throw new InvalidOperationException($"Document culture '{node.DocumentCulture}' not found.");
@@ -287,7 +287,7 @@ namespace Kentico.EMS.Kontent.Publishing
         {
             var query = new DataQuery();
 
-            var nodeRelationshipsQuery = RelationshipInfoProvider.GetRelationships()
+            var nodeRelationshipsQuery = RelationshipInfo.Provider.Get()
                 .WhereEquals("LeftNodeID", node.NodeID);
 
             // Get all the relationships for the document and also empty records for every existing relationships that the document is not using to send a complete set of relationship elements
@@ -532,13 +532,13 @@ LEFT JOIN CMS_Tree T ON R.RightNodeID = T.NodeID
         private IList<Guid> GetRelatedNodeGuids(TreeNode node, FormFieldInfo relationshipsField)
         {
             var relationshipName = RelationshipNameInfoProvider.GetAdHocRelationshipNameCodeName(node.ClassName, relationshipsField);
-            var relationshipNameInfo = RelationshipNameInfoProvider.GetRelationshipNameInfo(relationshipName);
+            var relationshipNameInfo = RelationshipNameInfo.Provider.Get(relationshipName);
             if (relationshipNameInfo == null)
             {
                 return new List<Guid>();
             }
 
-            var guids = RelationshipInfoProvider.GetRelationships()
+            var guids = RelationshipInfo.Provider.Get()
                 .Columns("NodeGUID")
                 .Source(
                     s => s.LeftJoin(new QuerySourceTable("CMS_Tree"), "RightNodeID", "NodeID")
