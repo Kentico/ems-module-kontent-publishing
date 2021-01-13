@@ -18,7 +18,7 @@ To install the module to your Xperience instance:
 
 1. Copy the contents of this repository to the root of your Xperience installation.
 
-   * You can do that by cloning the repository to a local folder (other than your Xperience folder) and then copying the files over to your Xperience folder.
+   * You can do that by downloading release package or cloning the repository to a local folder (other than your Xperience folder) and then copying the files over to your Xperience folder.
 
    * Only the files from the following folders are necessary for a proper installation of the module:  
      * `/Kentico.KontentPublishing`
@@ -47,7 +47,7 @@ To install the module to your Xperience instance:
 <add key="KCSyncWebRoot" value="[URL OF THE TARGET WEB SITE]" />
 <add key="KCSyncAssetsDomain" value="[KENTICO KONTENT ASSET DOMAIN]" />
 <add key="KCSyncProjectID" value="[YOUR PROJECT ID]" />
-<add key="KCSyncCMAPIKey" value="[YOUR CM API KEY]" />
+<add key="KCSyncCMAPIKey" value="[YOUR MANAGEMENT API KEY]" />
 ```
 
   - `KCSyncSitename` is the code name of the site you want to synchronize with your *Kontent* project, e.g. `DancingGoatMvc`
@@ -62,7 +62,8 @@ To install the module to your Xperience instance:
 
      - After you get the domain name, you can delete the asset.
 
-  - `KCSyncProjectID` and `KCSyncCMAPIKey` can be found in the **API Keys** section of the **Project settings** of your target *Kentico Kontent* Project.
+  - `KCSyncProjectID` is the Project ID of your *Kontent* project, it can be found in the **API Keys** section of the **Project settings** of your target *Kentico Kontent* Project.
+  - `KCSyncCMAPIKey` is the Management API key of your *Kontent* project, it can be found in the **API Keys** section of the **Project settings** of your target *Kentico Kontent* Project.
 
 ### Importing the Xperience module
 
